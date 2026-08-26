@@ -86,6 +86,7 @@ export function SearchView() {
   const dirs = useMemo(() => collectDirs(fileTree), [fileTree])
 
   useEffect(() => {
+    // oxlint-disable-next-line react(set-state-in-effect) — reset selection when results change
     setSelectedIndex(0)
   }, [results])
 

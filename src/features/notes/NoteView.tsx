@@ -45,6 +45,7 @@ export function NoteView({ path }: NoteViewProps) {
 
   useEffect(() => {
     if (!doc || doc.loading || doc.content === doc.saved) return
+    // eslint-disable-next-line react/set-state-in-effect -- auto-save debounce trigger
     setSaveStatus('unsaved')
     const t = window.setTimeout(() => void doSave(), 900)
     return () => window.clearTimeout(t)

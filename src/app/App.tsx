@@ -86,7 +86,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isMac])
+  }, [isMac, setShortcutsOpen])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -129,7 +129,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isMac])
+  }, [isMac, setShortcutsOpen])
 
   if (!workspace || welcomeVisible) {
     return (

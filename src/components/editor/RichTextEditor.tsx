@@ -39,7 +39,7 @@ export function RichTextEditor({ initialContent, onChange, readOnly = false }: R
     const text = editor.getText().trim()
     if (!text) return 0
     return text.split(/\s+/).length
-  }, [editor?.state.doc])
+  }, [editor])
 
   return (
     <div className="relative flex h-full flex-col">

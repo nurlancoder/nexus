@@ -239,11 +239,7 @@ function BrowserRecent({
   isDark: boolean
   disabled: boolean
 }) {
-  const [paths, setPaths] = useState<string[]>([])
-
-  useEffect(() => {
-    setPaths(loadBrowserRecent())
-  }, [])
+  const [paths] = useState<string[]>(() => loadBrowserRecent())
 
   if (paths.length === 0) return null
 
