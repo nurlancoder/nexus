@@ -16,6 +16,7 @@ interface TabState {
   activeTabId: string | null
   splitTabId: string | null
   splitRatio: number
+  closedTabs: Tab[]
   openView: (viewId: ViewId, title: string) => void
   openNote: (path: string, title: string) => void
   openCanvas: (path: string, title: string) => void
@@ -24,6 +25,7 @@ interface TabState {
   closeAll: () => void
   activateTab: (id: string) => void
   cycleTab: (dir: 1 | -1) => void
+  reopenLastClosed: () => void
   setSplit: (id: string | null) => void
   toggleSplitTab: (id: string) => void
   swapPanes: () => void
@@ -40,6 +42,7 @@ export const useTabStore = create<TabState>((set, get) => ({
   activeTabId: null,
   splitTabId: null,
   splitRatio: Math.min(SPLIT_RATIO_MAX, Math.max(SPLIT_RATIO_MIN, storedSplitRatio)),
+  closedTabs: [],
 
   openView: (viewId, title) => {
     const { tabs } = get()
@@ -95,16 +98,18 @@ export const useTabStore = create<TabState>((set, get) => ({
   },
 
   closeTab: (id) => {
-    const { tabs, activeTabId, splitTabId } = get()
+    const { tabs, activeTabId, splitTabId, closedTabs } = get()
     const idx = tabs.findIndex((t) => t.id === id)
     if (idx === -1) return
+    const closedTab = tabs[idx]
     const next = tabs.filter((t) => t.id !== id)
     const nextSplit = splitTabId === id ? null : splitTabId
+    const nextClosed = [closedTab, ...closedTabs].slice(0, 20)
     if (activeTabId === id) {
       const neighbor = next[idx] ?? next[idx - 1]
-      set({ tabs: next, activeTabId: neighbor?.id ?? null, splitTabId: nextSplit })
+      set({ tabs: next, activeTabId: neighbor?.id ?? null, splitTabId: nextSplit, closedTabs: nextClosed })
     } else {
-      set({ tabs: next, splitTabId: nextSplit })
+      set({ tabs: next, splitTabId: nextSplit, closedTabs: nextClosed })
     }
   },
 
@@ -119,6 +124,17 @@ export const useTabStore = create<TabState>((set, get) => ({
     const idx = tabs.findIndex((t) => t.id === activeTabId)
     const next = (idx + dir + tabs.length) % tabs.length
     set({ activeTabId: tabs[next].id })
+  },
+
+  reopenLastClosed: () => {
+    const { closedTabs, tabs } = get()
+    if (closedTabs.length === 0) return
+    const [tab, ...rest] = closedTabs
+    if (tabs.some((t) => t.id === tab.id)) {
+      set({ closedTabs: rest, activeTabId: tab.id })
+      return
+    }
+    set({ tabs: [...tabs, tab], activeTabId: tab.id, closedTabs: rest })
   },
 
   setSplit: (splitTabId) => set({ splitTabId }),

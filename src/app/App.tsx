@@ -10,6 +10,8 @@ import { StatusBar } from '@/components/layout/StatusBar'
 import { CommandPalette } from '@/components/command/CommandPalette'
 import { Resizer } from '@/components/ui/Resizer'
 import { ToastProvider } from '@/components/ui/Toast'
+import { ShortcutsHelp } from '@/components/ui/ShortcutsHelp'
+import { useShortcutsStore } from '@/stores/shortcutsStore'
 import { WelcomeScreen } from '@/features/workspace/WelcomeScreen'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { registerCoreCommands } from '@/core/commands/core'
@@ -32,6 +34,8 @@ export default function App() {
     focusMode,
   } = useWorkspaceStore()
   const isDark = theme === 'dark'
+  const shortcutsOpen = useShortcutsStore((s) => s.open)
+  const setShortcutsOpen = useShortcutsStore((s) => s.setOpen)
 
   useEffect(() => {
     if (!focusMode) return
@@ -84,12 +88,56 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [isMac])
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement
+      const isInput =
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement?.getAttribute('contenteditable') === 'true'
+
+      if (e.key === '?' && !isInput) {
+        e.preventDefault()
+        setShortcutsOpen(true)
+        return
+      }
+      if (matchesShortcut(e, { key: '/', mod: true }, isMac)) {
+        e.preventDefault()
+        useShortcutsStore.getState().toggle()
+        return
+      }
+      if (matchesShortcut(e, { key: 'Tab' }, isMac) && e.ctrlKey) {
+        e.preventDefault()
+        if (e.shiftKey) {
+          useTabStore.getState().cycleTab(-1)
+        } else {
+          useTabStore.getState().cycleTab(1)
+        }
+        return
+      }
+      if (matchesShortcut(e, { key: 'w', mod: true }, isMac)) {
+        e.preventDefault()
+        const { activeTabId } = useTabStore.getState()
+        if (activeTabId) useTabStore.getState().closeTab(activeTabId)
+        return
+      }
+      if (matchesShortcut(e, { key: 't', mod: true, shift: true }, isMac)) {
+        e.preventDefault()
+        useTabStore.getState().reopenLastClosed()
+        return
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isMac])
+
   if (!workspace || welcomeVisible) {
     return (
       <ToastProvider>
         <div className={`h-full ${isDark ? 'dark' : ''}`}>
           <WelcomeScreen />
           <CommandPalette />
+          <ShortcutsHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
         </div>
       </ToastProvider>
     )
@@ -111,6 +159,8 @@ export default function App() {
                 direction="vertical"
                 value={sidebarWidth}
                 onResize={setSidebarWidth}
+                minSize={150}
+                maxSize={400}
               />
             </>
           )}
@@ -124,6 +174,8 @@ export default function App() {
                 value={inspectorWidth}
                 onResize={setInspectorWidth}
                 position="left"
+                minSize={200}
+                maxSize={450}
               />
               <Inspector />
             </>
@@ -143,6 +195,7 @@ export default function App() {
           </button>
         )}
         <CommandPalette />
+        <ShortcutsHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       </div>
     </ToastProvider>
   )

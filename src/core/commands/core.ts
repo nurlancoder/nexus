@@ -2,6 +2,7 @@ import { commands } from '@/core/commands/registry'
 import { useCommandPaletteStore } from '@/stores/commandPaletteStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useTabStore } from '@/stores/tabStore'
+import { useShortcutsStore } from '@/stores/shortcutsStore'
 import { createNoteInInbox } from '@/features/notes/actions'
 import { applyLayoutPreset } from '@/core/layout/presets'
 import { checkForUpdates } from '@/lib/updater'
@@ -201,5 +202,12 @@ export function registerCoreCommands() {
     category: 'Project',
     keywords: ['new', 'project', 'create'],
     run: () => {},
+  })
+  commands.register({
+    id: 'system.shortcuts.show',
+    title: 'Show keyboard shortcuts',
+    category: 'System',
+    keywords: ['shortcuts', 'keys', 'hotkeys', 'bindings'],
+    run: () => useShortcutsStore.getState().toggle(),
   })
 }

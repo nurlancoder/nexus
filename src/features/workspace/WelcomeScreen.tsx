@@ -5,6 +5,33 @@ import { pickDirectory } from '@/lib/dialog'
 import { isTauri } from '@/lib/tauriEnv'
 import type { Workspace } from '@/types'
 
+const RECENT_STORAGE_KEY = 'nexus.recentPaths'
+const MAX_BROWSER_RECENT = 5
+
+function loadBrowserRecent(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveBrowserRecent(paths: string[]) {
+  localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(paths))
+}
+
+function addBrowserRecent(path: string) {
+  const list = loadBrowserRecent().filter((p) => p !== path)
+  list.unshift(path)
+  saveBrowserRecent(list.slice(0, MAX_BROWSER_RECENT))
+}
+
+function folderName(path: string): string {
+  const parts = path.replace(/\\/g, '/').split('/')
+  return parts[parts.length - 1] || path
+}
+
 export function WelcomeScreen() {
   const theme = useWorkspaceStore((s) => s.theme)
   const recent = useWorkspaceStore((s) => s.recentWorkspaces)
@@ -28,6 +55,7 @@ export function WelcomeScreen() {
       const tree = await workspaceApi.tree(path)
       useWorkspaceStore.getState().activateWorkspace(ws, tree)
       useWorkspaceStore.getState().setWorkspaceLoading(false)
+      if (!isTauri()) addBrowserRecent(path)
     } catch (e) {
       setError(String(e))
       useWorkspaceStore.getState().setWorkspaceLoading(false)
@@ -165,6 +193,14 @@ export function WelcomeScreen() {
             </div>
           </div>
         )}
+
+        {!isTauri() && (
+          <BrowserRecent
+            onOpen={openWorkspace}
+            isDark={isDark}
+            disabled={workspaceLoading}
+          />
+        )}
       </div>
 
       {error && (
@@ -189,6 +225,51 @@ export function WelcomeScreen() {
         <span>⌘N to create a note</span>
         <span>·</span>
         <span>v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}</span>
+      </div>
+    </div>
+  )
+}
+
+function BrowserRecent({
+  onOpen,
+  isDark,
+  disabled,
+}: {
+  onOpen: (path: string) => void
+  isDark: boolean
+  disabled: boolean
+}) {
+  const [paths, setPaths] = useState<string[]>([])
+
+  useEffect(() => {
+    setPaths(loadBrowserRecent())
+  }, [])
+
+  if (paths.length === 0) return null
+
+  return (
+    <div
+      className={`rounded-xl border p-5 transition-all hover:scale-[1.02] hover:shadow-lg ${
+        isDark
+          ? 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
+          : 'border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-zinc-200/50'
+      }`}
+    >
+      <h2 className="mb-1 text-sm font-semibold">Recent</h2>
+      <p className={`mb-3 text-[12px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+        Recently opened paths
+      </p>
+      <div className="max-h-40 space-y-1 overflow-y-auto">
+        {paths.map((p) => (
+          <button
+            key={p}
+            onClick={() => onOpen(p)}
+            disabled={disabled}
+            className="block w-full truncate rounded-md px-2 py-1.5 text-left text-[12px] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50"
+          >
+            {folderName(p)}
+          </button>
+        ))}
       </div>
     </div>
   )
