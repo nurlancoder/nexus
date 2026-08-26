@@ -33,7 +33,7 @@
 | 19 | Plugin Architecture (API, commands, events, extension points) | ✅ Done |
 | 20 | Polish (animations, shortcuts, a11y, performance, empty/error states) | ✅ Done |
 | 21 | Testing (unit, integration, FS, DB, graph, editor — vitest + cargo test; 132 frontend + 57 Rust) | ✅ Done |
-| 22 | Production (installer, portable, auto-updater, icon, signing, docs) | pending |
+| 22 | Production (installer, portable, auto-updater, icon, signing, docs) | 🔄 In Progress — see notes below |
 
 ## MVP target (after Phases 1–8)
 
