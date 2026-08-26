@@ -15,6 +15,23 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'vendor-react'
+          }
+          if (id.includes('node_modules/@tiptap/')) {
+            return 'vendor-tiptap'
+          }
+          if (id.includes('node_modules/zustand')) {
+            return 'vendor-zustand'
+          }
+        },
+      },
+    },
+  },
   test: {
     setupFiles: ['./src/test/setup.ts'],
   },

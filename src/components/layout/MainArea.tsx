@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { Suspense, lazy, useRef } from 'react'
 import { useTabStore, type Tab } from '@/stores/tabStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { ROUTES } from '@/app/routes'
@@ -7,23 +7,35 @@ import { EmptyState } from './EmptyState'
 import { ErrorBoundary } from './ErrorBoundary'
 import { NoteView } from '@/features/notes/NoteView'
 import { SearchView } from '@/components/search/SearchView'
-import { GraphView } from '@/components/graph/GraphView'
-import { InsightsView } from '@/components/insights/InsightsView'
-import { CanvasView } from '@/components/canvas/CanvasView'
-import { CanvasManager } from '@/components/canvas/CanvasManager'
-import { DatabaseView } from '@/components/database/DatabaseView'
 import { TasksView } from '@/components/tasks/TasksView'
 import { ProjectsView } from '@/components/projects/ProjectsView'
 import { CalendarView } from '@/components/calendar/CalendarView'
-import { AttachmentsView } from '@/components/attachments/AttachmentsView'
 import { TemplatesView } from '@/components/templates/TemplatesView'
-import { PluginsView } from '@/components/plugins/PluginsView'
+
+const GraphView = lazy(() => import('@/components/graph/GraphView').then(m => ({ default: m.GraphView })))
+const InsightsView = lazy(() => import('@/components/insights/InsightsView').then(m => ({ default: m.InsightsView })))
+const CanvasView = lazy(() => import('@/components/canvas/CanvasView').then(m => ({ default: m.CanvasView })))
+const CanvasManager = lazy(() => import('@/components/canvas/CanvasManager').then(m => ({ default: m.CanvasManager })))
+const DatabaseView = lazy(() => import('@/components/database/DatabaseView').then(m => ({ default: m.DatabaseView })))
+const AttachmentsView = lazy(() => import('@/components/attachments/AttachmentsView').then(m => ({ default: m.AttachmentsView })))
+const PluginsView = lazy(() => import('@/components/plugins/PluginsView').then(m => ({ default: m.PluginsView })))
+
+function LoadingIndicator() {
+  const isDark = useWorkspaceStore((s) => s.theme) === 'dark'
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className={`h-5 w-5 animate-spin rounded-full border-2 ${
+        isDark ? 'border-zinc-600 border-t-zinc-300' : 'border-zinc-300 border-t-zinc-700'
+      }`} />
+    </div>
+  )
+}
 
 function PaneContent({ tab }: { tab: Tab }) {
   const route = tab.viewId ? ROUTES.find((r) => r.id === tab.viewId) : undefined
 
   return (
-    <>
+    <Suspense fallback={<LoadingIndicator />}>
       {tab.kind === 'note' && tab.notePath ? (
         <NoteView key={tab.notePath} path={tab.notePath} />
       ) : tab.kind === 'canvas' && tab.canvasPath ? (
@@ -53,7 +65,7 @@ function PaneContent({ tab }: { tab: Tab }) {
       ) : (
         <EmptyState key={tab.id} label={route?.label ?? tab.title} />
       )}
-    </>
+    </Suspense>
   )
 }
 
