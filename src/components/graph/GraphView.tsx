@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { linkingApi, type GraphNode } from '@/core/filesystem/api'
 import { runLayout, clusterColor, type GraphNodePos } from '@/core/graph/layout'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
@@ -26,6 +26,10 @@ export function GraphView({ focusPath }: GraphViewProps) {
 
   const panRef = useRef(pan)
   const zoomRef = useRef(zoom)
+  const visibleRef = useRef<GraphNodePos[]>([])
+  const isDarkRef = useRef(isDark)
+  const hoverRef = useRef(hover)
+  const focusRef = useRef(focus)
 
   useEffect(() => {
     panRef.current = pan
@@ -33,6 +37,15 @@ export function GraphView({ focusPath }: GraphViewProps) {
   useEffect(() => {
     zoomRef.current = zoom
   }, [zoom])
+  useEffect(() => {
+    isDarkRef.current = isDark
+  }, [isDark])
+  useEffect(() => {
+    hoverRef.current = hover
+  }, [hover])
+  useEffect(() => {
+    focusRef.current = focus
+  }, [focus])
 
   useEffect(() => {
     if (!workspace) return
@@ -49,6 +62,11 @@ export function GraphView({ focusPath }: GraphViewProps) {
     if (raw.length === 0) return null
     return runLayout(raw, 1200, 800, 120)
   }, [raw])
+
+  const layoutRef = useRef(layout)
+  useEffect(() => {
+    layoutRef.current = layout
+  }, [layout])
 
   const statsMemo = useMemo(
     () =>
@@ -96,9 +114,14 @@ export function GraphView({ focusPath }: GraphViewProps) {
     return shown
   }, [layout, query, showIsolates, focus])
 
-  const draw = () => {
+  useEffect(() => {
+    visibleRef.current = visible
+  }, [visible])
+
+  const draw = useCallback(() => {
     const canvas = canvasRef.current
-    if (!canvas || !layout) return
+    const currentLayout = layoutRef.current
+    if (!canvas || !currentLayout) return
     const dpr = window.devicePixelRatio || 1
     const rect = canvas.getBoundingClientRect()
     const w = rect.width
@@ -116,29 +139,29 @@ export function GraphView({ focusPath }: GraphViewProps) {
     ctx.translate(w / 2 + panRef.current.x, h / 2 + panRef.current.y)
     ctx.scale(zoomRef.current, zoomRef.current)
 
-    const cx = layout.nodes.reduce((s, n) => s + n.x, 0) / Math.max(1, layout.nodes.length)
-    const cy = layout.nodes.reduce((s, n) => s + n.y, 0) / Math.max(1, layout.nodes.length)
+    const cx = currentLayout.nodes.reduce((s, n) => s + n.x, 0) / Math.max(1, currentLayout.nodes.length)
+    const cy = currentLayout.nodes.reduce((s, n) => s + n.y, 0) / Math.max(1, currentLayout.nodes.length)
 
-    const shownPaths = new Set(visible.map((n) => n.node.path))
-    const nodeIndex = new Map(layout.nodes.map((n, i) => [n.node.path, i]))
+    const shownPaths = new Set(visibleRef.current.map((n) => n.node.path))
+    const nodeIndex = new Map(currentLayout.nodes.map((n, i) => [n.node.path, i]))
 
     ctx.lineWidth = 1
-    for (const e of layout.edges) {
-      const a = layout.nodes[e.source]
-      const b = layout.nodes[e.target]
+    for (const e of currentLayout.edges) {
+      const a = currentLayout.nodes[e.source]
+      const b = currentLayout.nodes[e.target]
       if (!shownPaths.has(a.node.path) || !shownPaths.has(b.node.path)) continue
-      ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.35)' : 'rgba(100,116,139,0.3)'
+      ctx.strokeStyle = isDarkRef.current ? 'rgba(148,163,184,0.35)' : 'rgba(100,116,139,0.3)'
       ctx.beginPath()
       ctx.moveTo(a.x - cx, a.y - cy)
       ctx.lineTo(b.x - cx, b.y - cy)
       ctx.stroke()
     }
 
-    for (const n of visible) {
+    for (const n of visibleRef.current) {
       const i = nodeIndex.get(n.node.path)!
-      const color = clusterColor(layout.clusters.get(i) ?? 0, isDark)
+      const color = clusterColor(currentLayout.clusters.get(i) ?? 0, isDarkRef.current)
       const size = n.node.links.length === 0 && n.node.tags.length === 0 ? 4 : 7
-      const isFocus = focus === n.node.path
+      const isFocus = focusRef.current === n.node.path
       ctx.beginPath()
       ctx.arc(n.x - cx, n.y - cy, isFocus ? size + 3 : size, 0, Math.PI * 2)
       ctx.fillStyle = color
@@ -147,11 +170,11 @@ export function GraphView({ focusPath }: GraphViewProps) {
       ctx.globalAlpha = 1
       if (isFocus) {
         ctx.lineWidth = 2
-        ctx.strokeStyle = isDark ? '#facc15' : '#d97706'
+        ctx.strokeStyle = isDarkRef.current ? '#facc15' : '#d97706'
         ctx.stroke()
       }
-      if (hover === n.node.path) {
-        ctx.fillStyle = isDark ? '#ffffff' : '#000000'
+      if (hoverRef.current === n.node.path) {
+        ctx.fillStyle = isDarkRef.current ? '#ffffff' : '#000000'
         ctx.font = '11px system-ui, sans-serif'
         ctx.textAlign = 'center'
         const label = n.node.title.length > 28 ? n.node.title.slice(0, 28) + '…' : n.node.title
@@ -159,11 +182,11 @@ export function GraphView({ focusPath }: GraphViewProps) {
       }
     }
     ctx.restore()
-  }
+  }, [])
 
   useEffect(() => {
     draw()
-  }, [visible, isDark, hover, pan, zoom])
+  }, [draw, visible, isDark, hover, pan, zoom])
 
   useEffect(() => {
     const canvas = canvasRef.current
