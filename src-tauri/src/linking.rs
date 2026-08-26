@@ -122,9 +122,31 @@ fn matches_target(candidate: &str, targets: &[String]) -> bool {
   false
 }
 
+fn floor_char_boundary(s: &str, index: usize) -> usize {
+  if index >= s.len() {
+    return s.len();
+  }
+  let mut i = index;
+  while i > 0 && !s.is_char_boundary(i) {
+    i -= 1;
+  }
+  i
+}
+
+fn ceil_char_boundary(s: &str, index: usize) -> usize {
+  if index >= s.len() {
+    return s.len();
+  }
+  let mut i = index;
+  while i < s.len() && !s.is_char_boundary(i) {
+    i += 1;
+  }
+  i
+}
+
 fn make_snippet(content: &str, idx: usize, len: usize) -> String {
-  let start = idx.saturating_sub(40);
-  let end = (idx + len + 40).min(content.len());
+  let start = floor_char_boundary(content, idx.saturating_sub(40));
+  let end = ceil_char_boundary(content, (idx + len + 40).min(content.len()));
   let mut s = content[start..end].replace(['\n', '\r'], " ");
   s = s.split_whitespace().collect::<Vec<_>>().join(" ");
   let prefix = if start > 0 { "…" } else { "" };

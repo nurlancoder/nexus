@@ -51,9 +51,10 @@ fn valid_date(date: &str) -> bool {
   if date.len() != 10 || date.as_bytes()[4] != b'-' || date.as_bytes()[7] != b'-' {
     return false;
   }
+  let year: i32 = date[0..4].parse().unwrap_or(0);
   let month: u32 = date[5..7].parse().unwrap_or(0);
   let day: u32 = date[8..10].parse().unwrap_or(0);
-  (1..=12).contains(&month) && (1..=31).contains(&day)
+  chrono::NaiveDate::from_ymd_opt(year, month, day).is_some()
 }
 
 pub fn collect_events(workspace_path: &str, year: i32, month: u32) -> Result<Vec<CalendarEvent>, String> {

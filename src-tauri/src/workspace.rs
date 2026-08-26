@@ -290,7 +290,11 @@ pub fn note_write<R: tauri::Runtime>(
     std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
   }
   let tmp = p.with_extension("tmp");
-  std::fs::write(&tmp, content.clone()).map_err(|e| e.to_string())?;
+  {
+    let db = app.state::<Database>();
+    security::validate_path(&db.conn(), &tmp.to_string_lossy())?;
+  }
+  std::fs::write(&tmp, &content).map_err(|e| e.to_string())?;
   std::fs::rename(&tmp, &p).map_err(|e| e.to_string())?;
   sync_index(&app, &path);
   crate::history::maybe_snapshot(&app, &path, &content);
@@ -353,6 +357,10 @@ pub fn note_rename<R: tauri::Runtime>(app: tauri::AppHandle<R>, path: String, ne
     slugify(&new_name)
   };
   let new_path = parent.join(format!("{base}.md"));
+  {
+    let db = app.state::<Database>();
+    security::validate_path(&db.conn(), &new_path.to_string_lossy())?;
+  }
   std::fs::rename(&old, &new_path).map_err(|e| e.to_string())?;
   sync_index_remove(&app, &path);
   sync_index(&app, &new_path.to_string_lossy());

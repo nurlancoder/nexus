@@ -53,18 +53,18 @@ fn sanitize_name(name: &str) -> Result<String, String> {
 }
 
 /// Creates the plugins folder with a sample plugin on first use.
-pub fn ensure_plugins_dir(workspace_path: &str) -> PathBuf {
+pub fn ensure_plugins_dir(workspace_path: &str) -> Result<PathBuf, String> {
   let dir = plugins_root(workspace_path);
-  let _ = std::fs::create_dir_all(&dir);
+  std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create plugins dir: {e}"))?;
   let sample = dir.join("hello.js");
   if !sample.exists() {
-    let _ = std::fs::write(&sample, SAMPLE_PLUGIN);
+    std::fs::write(&sample, SAMPLE_PLUGIN).map_err(|e| format!("Failed to write sample plugin: {e}"))?;
   }
-  dir
+  Ok(dir)
 }
 
 pub fn list_plugins(workspace_path: &str) -> Result<Vec<PluginInfo>, String> {
-  let dir = ensure_plugins_dir(workspace_path);
+  let dir = ensure_plugins_dir(workspace_path)?;
   let mut out = Vec::new();
   let entries = std::fs::read_dir(&dir).map_err(|e| e.to_string())?;
   for entry in entries {
@@ -198,7 +198,7 @@ mod tests {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     register_ws(&app, &dir.to_string_lossy());
-    ensure_plugins_dir(&dir.to_string_lossy());
+    ensure_plugins_dir(&dir.to_string_lossy()).unwrap();
     std::fs::write(dir.join("plugins/test.js"), "// ok").unwrap();
 
     assert!(plugin_list(app.clone(), dir.to_str().unwrap().to_string()).is_ok());
@@ -218,7 +218,7 @@ mod tests {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let ws = dir.to_string_lossy().to_string();
-    ensure_plugins_dir(&ws);
+    ensure_plugins_dir(&ws).unwrap();
     std::fs::write(dir.join("plugins/x.js"), "nx.log('hi')").unwrap();
 
     assert_eq!(read_plugin(&ws, "x.js").unwrap(), "nx.log('hi')");

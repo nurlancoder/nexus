@@ -4,6 +4,7 @@ use std::path::Path;
 use tauri::Manager;
 
 use crate::db::Database;
+use crate::util::find_workspace_id;
 
 #[derive(Serialize)]
 pub struct SearchResult {
@@ -56,10 +57,6 @@ pub fn remove_note(conn: &Connection, path: &str) -> Result<(), String> {
     .execute("DELETE FROM note_index WHERE path = ?1", params![path])
     .map_err(|e| e.to_string())?;
   Ok(())
-}
-
-fn find_workspace_id(conn: &Connection, path: &Path) -> Result<i64, String> {
-  crate::util::find_workspace_id(conn, path)
 }
 
 /// Resolves a workspace for an arbitrary path inside it (longest prefix wins).

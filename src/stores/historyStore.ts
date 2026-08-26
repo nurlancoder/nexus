@@ -7,6 +7,7 @@ interface HistoryState {
   preview: string | null
   loading: boolean
   error: string | null
+  currentPath: string | null
   load: (path: string) => Promise<void>
   select: (id: number) => Promise<void>
   restore: (path: string, id: number) => Promise<boolean>
@@ -18,9 +19,10 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
   preview: null,
   loading: false,
   error: null,
+  currentPath: null,
 
   load: async (path) => {
-    set({ loading: true, error: null })
+    set({ loading: true, error: null, currentPath: path })
     try {
       const versions = await historyApi.list(path)
       const keep = get().selectedId
@@ -41,8 +43,10 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       set({ selectedId: null, preview: null })
       return
     }
+    const path = get().currentPath
+    if (!path) return
     try {
-      const content = await historyApi.get(id)
+      const content = await historyApi.get(path, id)
       set({ selectedId: id, preview: content })
     } catch (e) {
       set({ error: String(e) })

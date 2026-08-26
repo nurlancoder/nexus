@@ -3,6 +3,7 @@ use serde::Serialize;
 use tauri::Manager;
 
 use crate::db::Database;
+use crate::security;
 
 pub const MAX_VERSIONS_PER_NOTE: i64 = 50;
 const SNAPSHOT_MIN_INTERVAL_SECS: f64 = 300.0;
@@ -157,11 +158,23 @@ pub fn history_list<R: tauri::Runtime>(
 #[tauri::command]
 pub fn history_get<R: tauri::Runtime>(
   app: tauri::AppHandle<R>,
+  path: String,
   id: i64,
 ) -> Result<String, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  fetch_version_content(&conn, id)
+  security::validate_path(&conn, &path)?;
+  let ws_id = crate::util::find_workspace_id(&conn, std::path::Path::new(&path))?;
+  let content: String = conn
+    .query_row(
+      "SELECT nv.content FROM note_versions nv
+       JOIN notes n ON n.id = nv.note_id
+       WHERE nv.id = ?1 AND n.workspace_id = ?2",
+      rusqlite::params![id, ws_id],
+      |r| r.get(0),
+    )
+    .map_err(|_| "Version not found".to_string())?;
+  Ok(content)
 }
 
 #[tauri::command]

@@ -46,6 +46,10 @@ pub fn canvas_save<R: tauri::Runtime>(app: tauri::AppHandle<R>, path: String, co
     std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
   }
   let tmp = p.with_extension("tmp");
+  {
+    let db = app.state::<Database>();
+    security::validate_path(&db.conn(), &tmp.to_string_lossy())?;
+  }
   std::fs::write(&tmp, content).map_err(|e| e.to_string())?;
   std::fs::rename(&tmp, &p).map_err(|e| e.to_string())?;
   Ok(())

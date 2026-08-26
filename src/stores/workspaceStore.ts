@@ -41,7 +41,8 @@ const applyTheme = (theme: Theme) => {
   document.documentElement.classList.toggle('dark', theme === 'dark')
 }
 
-const storedTheme = (localStorage.getItem('nexus.theme') as Theme) || 'dark'
+const rawTheme = localStorage.getItem('nexus.theme')
+const storedTheme: Theme = rawTheme === 'light' || rawTheme === 'dark' ? rawTheme : 'dark'
 const storedSidebarWidth = Number(localStorage.getItem('nexus.sidebarWidth')) || 208
 const storedInspectorWidth =
   Number(localStorage.getItem('nexus.inspectorWidth')) || 256

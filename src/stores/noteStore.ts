@@ -74,9 +74,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   },
 
   setContent: (path, content) =>
-    set((s) => ({
-      docs: { ...s.docs, [path]: { ...s.docs[path], content } },
-    })),
+    set((s) => {
+      if (!s.docs[path]) return s
+      return { docs: { ...s.docs, [path]: { ...s.docs[path], content } } }
+    }),
 
   setProperty: async (path, key, value) => {
     const doc = get().docs[path]
@@ -108,7 +109,12 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     const frontmatter = doc.frontmatter
     const contentAtWrite = doc.content
     const full = joinFrontmatter(frontmatter, contentAtWrite)
-    await noteApi.write(path, full)
+    try {
+      await noteApi.write(path, full)
+    } catch (e) {
+      console.error('[nexus] save failed:', path, e)
+      return
+    }
     set((s) => {
       const current = s.docs[path]
       if (!current || current.content !== contentAtWrite) return s

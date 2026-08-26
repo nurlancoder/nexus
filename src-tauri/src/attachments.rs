@@ -96,6 +96,9 @@ fn save_attachment_inner(
   }
   let dir = Path::new(workspace_path).join(ATTACHMENTS_DIR);
   std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+  if dir.is_symlink() {
+    return Err("Attachments directory is a symlink".into());
+  }
   let path = unique_path(&dir, &clean);
   std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
   Ok(info_for(&path))

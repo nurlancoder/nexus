@@ -223,7 +223,7 @@ export interface VersionInfo {
 
 export const historyApi = {
   list: (path: string) => invoke<VersionInfo[]>('history_list', { path }),
-  get: (id: number) => invoke<string>('history_get', { id }),
+  get: (path: string, id: number) => invoke<string>('history_get', { path, id }),
   restore: (path: string, id: number) =>
     invoke<null>('history_restore', { path, id }),
   prune: (path: string, keep?: number) =>
