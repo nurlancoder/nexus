@@ -17,7 +17,7 @@ import type { AnyExtension } from '@tiptap/core'
 
 export function createExtensions(): AnyExtension[] {
   return [
-    StarterKit,
+    StarterKit.configure({ link: false, underline: false }),
     Underline,
     Highlight.configure({ multicolor: true }),
     Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
