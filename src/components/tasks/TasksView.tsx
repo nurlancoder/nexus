@@ -34,10 +34,10 @@ export function TasksView() {
   const groups = useMemo(() => groupTasks(visible, today), [visible, today])
   const openCount = tasks.filter((t) => !t.done).length
 
-  const inputCls = `rounded-md border px-2 py-1 text-[12px] outline-none ${
+  const inputCls = `rounded-md border px-2 py-1 text-[12px] outline-none transition-colors ${
     isDark
-      ? 'border-zinc-700 bg-zinc-800 text-zinc-200 placeholder:text-zinc-500'
-      : 'border-zinc-300 bg-white text-zinc-800 placeholder:text-zinc-400'
+      ? 'border-zinc-700 bg-zinc-800 text-zinc-200 placeholder:text-zinc-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30'
+      : 'border-zinc-300 bg-white text-zinc-800 placeholder:text-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30'
   }`
   const btn = `rounded-md px-2.5 py-1.5 text-[12px] transition-colors ${
     isDark
@@ -100,14 +100,26 @@ export function TasksView() {
           </div>
         )}
         {groups.map(([section, items]) => (
-          <div key={section} className="mb-4">
+          <div
+            key={section}
+            className={`mb-4 rounded-lg ${section === 'overdue' && items.length > 0
+              ? isDark
+                ? 'bg-red-500/5 ring-1 ring-inset ring-red-500/10'
+                : 'bg-red-50 ring-1 ring-inset ring-red-200'
+              : ''
+            } p-1`}
+          >
             <div
               className={`sticky top-0 z-10 mb-1 py-1 text-[11px] font-semibold uppercase tracking-widest ${
-                isDark ? 'text-zinc-500' : 'text-zinc-400'
+                section === 'overdue'
+                  ? 'text-red-500'
+                  : isDark
+                    ? 'text-zinc-500'
+                    : 'text-zinc-400'
               }`}
             >
               {sectionLabel(section, today)}
-              <span className="ml-1.5 font-normal normal-case tracking-normal">
+              <span className="ml-1.5 font-normal normal-case tracking-normal opacity-70">
                 ({items.length})
               </span>
             </div>
@@ -137,12 +149,12 @@ export function TasksView() {
                         e.stopPropagation()
                         void useTaskStore.getState().toggle(t)
                       }}
-                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] leading-none transition-colors ${
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-[1.5px] text-[11px] leading-none transition-colors ${
                         t.done
                           ? 'border-green-500 bg-green-500 text-white'
                           : isDark
-                            ? 'border-zinc-600 hover:border-zinc-400'
-                            : 'border-zinc-400 hover:border-zinc-600'
+                            ? 'border-zinc-600 hover:border-blue-500 hover:bg-blue-500/10'
+                            : 'border-zinc-400 hover:border-blue-500 hover:bg-blue-50'
                       }`}
                       title={t.done ? 'Mark as open' : 'Mark as done'}
                     >

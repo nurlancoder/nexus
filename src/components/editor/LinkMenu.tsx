@@ -11,12 +11,13 @@ interface LinkState {
   to: number
 }
 
-function collectNotes(nodes: FileNode[], out: string[] = []): string[] {
+function collectNotes(nodes: FileNode[], out: { name: string; path: string }[] = [], parentPath = ''): { name: string; path: string }[] {
   for (const n of nodes) {
+    const fullPath = parentPath ? `${parentPath}/${n.name}` : n.name
     if (!n.isDir && /\.(md|markdown|txt)$/i.test(n.name)) {
-      out.push(n.name.replace(/\.(md|markdown|txt)$/i, ''))
+      out.push({ name: n.name.replace(/\.(md|markdown|txt)$/i, ''), path: fullPath })
     }
-    if (n.isDir) collectNotes(n.children, out)
+    if (n.isDir) collectNotes(n.children, out, fullPath)
   }
   return out
 }
@@ -31,7 +32,7 @@ export function LinkMenu({ editor }: { editor: Editor | null }) {
     () =>
       state
         ? notes
-            .filter((n) => n.toLowerCase().includes(state.query.toLowerCase()))
+            .filter((n) => n.name.toLowerCase().includes(state.query.toLowerCase()))
             .slice(0, 8)
         : [],
     [state, notes],
@@ -59,7 +60,7 @@ export function LinkMenu({ editor }: { editor: Editor | null }) {
       const parent = $from.parent
       if (parent.type.name !== 'paragraph') return setState(null)
       const textBefore = parent.textBetween(0, $from.parentOffset, undefined, '\ufffc')
-      const match = textBefore.match(/\[\[([a-zA-Z0-9 _-]*)$/)
+      const match = textBefore.match(/\[\[([^\]\n]*)$/)
       if (!match) return setState(null)
       const coords = editor.view.coordsAtPos($from.pos)
       setState({
@@ -90,7 +91,7 @@ export function LinkMenu({ editor }: { editor: Editor | null }) {
       } else if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault()
         const t = filtered[selected]
-        if (t) complete(t)
+        if (t) complete(t.name)
       } else if (e.key === 'Escape') {
         e.preventDefault()
         setState(null)
@@ -100,29 +101,42 @@ export function LinkMenu({ editor }: { editor: Editor | null }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [state, filtered, selected, complete])
 
-  if (!state || filtered.length === 0) return null
+  if (!state) return null
 
   return (
     <div
-      className="fixed z-40 max-h-64 w-60 overflow-y-auto rounded-lg border bg-white p-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+      className="fixed z-40 max-h-64 w-64 overflow-y-auto rounded-lg border bg-white p-1 shadow-xl nexus-fade-in dark:border-zinc-700 dark:bg-zinc-900"
       style={{ top: state.top + 24, left: Math.max(12, state.left) }}
       onMouseDown={(e) => e.preventDefault()}
     >
-      {filtered.map((note, i) => (
-        <button
-          key={note}
-          onMouseEnter={() => setSelected(i)}
-          onClick={() => complete(note)}
-          className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] ${
-            i === selected
-              ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
-              : 'text-zinc-700 dark:text-zinc-300'
-          }`}
-        >
-          <span className="text-[12px]">📄</span>
-          <span className="truncate">{note}</span>
-        </button>
-      ))}
+      {filtered.length === 0 ? (
+        <div className="px-3 py-4 text-center text-[12px] text-zinc-400 dark:text-zinc-500">
+          No matching notes
+        </div>
+      ) : (
+        filtered.map((note, i) => (
+          <button
+            key={note.name}
+            onMouseEnter={() => setSelected(i)}
+            onClick={() => complete(note.name)}
+            className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] ${
+              i === selected
+                ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+                : 'text-zinc-700 dark:text-zinc-300'
+            }`}
+          >
+            <span className="text-[12px]">📄</span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-medium">{note.name}</div>
+              {note.path !== note.name && (
+                <div className="truncate text-[10px] text-zinc-400 dark:text-zinc-500">
+                  {note.path}
+                </div>
+              )}
+            </div>
+          </button>
+        ))
+      )}
     </div>
   )
 }

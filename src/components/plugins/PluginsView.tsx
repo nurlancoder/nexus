@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { usePluginStore } from '@/stores/pluginStore'
 
@@ -8,6 +8,71 @@ const API_DOCS = [
   'nx.getActiveNote() / nx.readNote(path) / nx.writeNote(path, content)',
   'nx.log(message) / nx.today()',
 ]
+
+function PluginCard({ s, isDark }: { s: { name: string; enabled: boolean; error?: string | null }; isDark: boolean }) {
+  const [showError, setShowError] = useState(false)
+  return (
+    <div
+      className={`rounded-lg border px-3 py-3 ${
+        isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-zinc-200 bg-white'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span className="text-[18px]">🧩</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className={`text-[13px] font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{s.name}</span>
+            {s.enabled ? (
+              <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 ring-1 ring-emerald-500/30">
+                Active
+              </span>
+            ) : (
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${isDark ? 'bg-zinc-700/50 text-zinc-400' : 'bg-zinc-100 text-zinc-500'}`}>
+                Disabled
+              </span>
+            )}
+          </div>
+          {!s.error && !s.enabled && (
+            <div className={`mt-0.5 text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+              Enable to load its commands and hooks.
+            </div>
+          )}
+          {s.error && (
+            <div className="mt-1">
+              <button
+                onClick={() => setShowError((v) => !v)}
+                className="text-[11px] text-red-400 hover:text-red-300"
+              >
+                {showError ? 'Hide error' : 'Show error'}
+              </button>
+              {showError && (
+                <div className={`mt-1 whitespace-pre-wrap rounded-md border p-2 font-mono text-[10px] ${
+                  isDark ? 'border-red-500/20 bg-red-500/5 text-red-300' : 'border-red-200 bg-red-50 text-red-600'
+                }`}>
+                  {s.error}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => void usePluginStore.getState().toggle(s.name)}
+          className={`relative shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+            s.enabled
+              ? isDark
+                ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25'
+                : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+              : isDark
+                ? 'bg-zinc-700/50 text-zinc-400 hover:bg-zinc-700'
+                : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+          }`}
+        >
+          {s.enabled ? 'Enabled' : 'Disabled'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export function PluginsView() {
   const isDark = useWorkspaceStore((s) => s.theme === 'dark')
@@ -56,46 +121,18 @@ export function PluginsView() {
           <>
             <div className="space-y-2">
               {statuses.length === 0 && !loading && (
-                <p className={`text-[13px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                  No plugins found. Add a .js file to the plugins/ folder in your vault.
-                </p>
+                <div className="flex flex-col items-center gap-2 py-8 text-center">
+                  <div className="text-4xl opacity-40">🧩</div>
+                  <p className={`text-[13px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                    No plugins found
+                  </p>
+                  <p className={`max-w-xs text-[12px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                    Add a .js file to the plugins/ folder in your vault to extend Nexus with custom commands and hooks.
+                  </p>
+                </div>
               )}
               {statuses.map((s) => (
-                <div
-                  key={s.name}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 ${
-                    isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-zinc-200 bg-white'
-                  }`}
-                >
-                  <span className="text-[14px]">🧩</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-medium">{s.name}</div>
-                    {s.error && (
-                      <div className="truncate text-[11px] text-red-500" title={s.error}>
-                        {s.error}
-                      </div>
-                    )}
-                    {!s.error && !s.enabled && (
-                      <div className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                        Disabled — enable to load its commands and hooks.
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => void usePluginStore.getState().toggle(s.name)}
-                    className={`shrink-0 rounded-md border px-2.5 py-1 text-[11px] ${
-                      s.enabled
-                        ? isDark
-                          ? 'border-emerald-700 bg-emerald-500/10 text-emerald-400'
-                          : 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                        : isDark
-                          ? 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'
-                          : 'border-zinc-300 text-zinc-500 hover:bg-zinc-100'
-                    }`}
-                  >
-                    {s.enabled ? 'Enabled' : 'Disabled'}
-                  </button>
-                </div>
+                <PluginCard key={s.name} s={s} isDark={isDark} />
               ))}
             </div>
 

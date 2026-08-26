@@ -53,6 +53,11 @@ export function CalendarView() {
       ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
       : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300'
   }`
+  const navBtn = `flex h-7 w-7 items-center justify-center rounded-md text-[14px] transition-colors ${
+    isDark
+      ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+      : 'text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800'
+  }`
   const mutedText = isDark ? 'text-zinc-500' : 'text-zinc-400'
   const prevMonth = shiftMonth(year, month, -1)
   const nextMonth = shiftMonth(year, month, 1)
@@ -82,7 +87,8 @@ export function CalendarView() {
         <div className="ml-2 flex items-center gap-1">
           <button
             onClick={() => useCalendarStore.getState().setMonth(prevMonth.year, prevMonth.month)}
-            className={btn}
+            className={navBtn}
+            aria-label="Previous month"
           >
             ‹
           </button>
@@ -91,7 +97,8 @@ export function CalendarView() {
           </span>
           <button
             onClick={() => useCalendarStore.getState().setMonth(nextMonth.year, nextMonth.month)}
-            className={btn}
+            className={navBtn}
+            aria-label="Next month"
           >
             ›
           </button>
@@ -138,9 +145,13 @@ export function CalendarView() {
                       ? isDark
                         ? 'border-blue-500 bg-blue-500/10'
                         : 'border-blue-500 bg-blue-50'
-                      : isDark
-                        ? 'border-zinc-800 hover:border-zinc-600'
-                        : 'border-zinc-200 hover:border-zinc-400'
+                      : isToday
+                        ? isDark
+                          ? 'border-zinc-600 bg-zinc-800/50 ring-1 ring-inset ring-blue-500/30'
+                          : 'border-zinc-300 bg-zinc-50 ring-1 ring-inset ring-blue-400/30'
+                        : isDark
+                          ? 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800/40'
+                          : 'border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50'
                   }`}
                 >
                   <span
@@ -154,19 +165,28 @@ export function CalendarView() {
                   >
                     {Number(cell.date.slice(8))}
                   </span>
-                  <div className="mt-1 flex h-1.5 items-center gap-0.5">
-                    {dayEventsForCell.slice(0, 4).map((e, j) => (
-                      <span
-                        key={`${e.path}:${j}`}
-                        className={`h-1.5 w-1.5 rounded-full ${KIND_DOT[e.kind]}`}
-                      />
-                    ))}
-                    {dayEventsForCell.length > 4 && (
-                      <span className={`text-[8px] ${mutedText}`}>
-                        +{dayEventsForCell.length - 4}
-                      </span>
-                    )}
-                  </div>
+                  {dayEventsForCell.length > 0 ? (
+                    <div className="mt-1 space-y-0.5">
+                      {dayEventsForCell.slice(0, 2).map((e, j) => (
+                        <div
+                          key={`${e.path}:${j}`}
+                          className={`flex items-center gap-1 text-[9px] leading-tight ${
+                            isDark ? 'text-zinc-400' : 'text-zinc-500'
+                          }`}
+                        >
+                          <span className={`h-1 w-1 shrink-0 rounded-full ${KIND_DOT[e.kind]}`} />
+                          <span className="truncate">{e.title}</span>
+                        </div>
+                      ))}
+                      {dayEventsForCell.length > 2 && (
+                        <span className={`text-[9px] ${mutedText}`}>
+                          +{dayEventsForCell.length - 2} more
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-1 flex h-1.5 items-center gap-0.5" />
+                  )}
                 </button>
               )
             })}
@@ -191,11 +211,7 @@ export function CalendarView() {
             <button
               onClick={() => void openDaily()}
               disabled={dailyBusy}
-              className={`mt-2 w-full rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-50 ${
-                isDark
-                  ? 'bg-blue-600 text-white hover:bg-blue-500'
-                  : 'bg-blue-600 text-white hover:bg-blue-500'
-              }`}
+              className="mt-2 w-full rounded-md bg-blue-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
             >
               {dailyBusy ? 'Opening…' : 'Open daily note'}
             </button>
@@ -203,7 +219,10 @@ export function CalendarView() {
 
           <div className="flex-1 space-y-0.5 px-3 pb-3">
             {dayEvents.length === 0 && (
-              <p className={`text-[12px] ${mutedText}`}>Nothing scheduled for this day.</p>
+              <div className={`mt-4 flex flex-col items-center gap-2 text-center ${mutedText}`}>
+                <div className="text-3xl opacity-30">📅</div>
+                <p className="text-[12px]">Nothing scheduled for this day.</p>
+              </div>
             )}
             {dayEvents.map((e, i) => (
               <button

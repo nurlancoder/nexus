@@ -115,16 +115,23 @@ function PropertyRow({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { theme } = useWorkspaceStore()
   const isDark = theme === 'dark'
+  const [collapsed, setCollapsed] = useState(false)
   return (
-    <div className={`border-t px-3 py-3 ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
-      <p
-        className={`mb-2 text-[10px] font-semibold uppercase tracking-widest ${
-          isDark ? 'text-zinc-500' : 'text-zinc-400'
+    <div className={`border-t ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        className={`flex w-full items-center gap-1.5 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest transition-colors ${
+          isDark
+            ? 'bg-zinc-800/50 text-zinc-500 hover:bg-zinc-800'
+            : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'
         }`}
       >
+        <span className={`text-[8px] transition-transform ${collapsed ? '' : 'rotate-90'}`}>
+          ▶
+        </span>
         {title}
-      </p>
-      {children}
+      </button>
+      {!collapsed && <div className="px-3 py-3">{children}</div>}
     </div>
   )
 }
@@ -371,7 +378,11 @@ export function Inspector() {
               ) : (
                 <button
                   onClick={() => setAdding(true)}
-                  className={`mt-2 text-[11px] ${isDark ? 'text-zinc-500 hover:text-blue-400' : 'text-zinc-400 hover:text-blue-600'}`}
+                  className={`mt-2 w-full rounded border border-dashed px-2 py-1.5 text-[11px] transition-colors ${
+                    isDark
+                      ? 'border-zinc-700 text-zinc-500 hover:border-blue-500/50 hover:text-blue-400'
+                      : 'border-zinc-300 text-zinc-400 hover:border-blue-400 hover:text-blue-600'
+                  }`}
                 >
                   + Add property
                 </button>
@@ -517,7 +528,7 @@ export function Inspector() {
                       {history.selectedId === v.id && (
                         <div className="mt-1 space-y-2 px-2 pb-1">
                           <pre
-                            className={`max-h-40 overflow-auto rounded p-2 text-[10px] leading-relaxed ${
+                            className={`max-h-40 overflow-auto rounded p-2 text-[10px] leading-relaxed font-mono ${
                               isDark ? 'bg-zinc-900 text-zinc-300' : 'bg-white text-zinc-700'
                             }`}
                           >

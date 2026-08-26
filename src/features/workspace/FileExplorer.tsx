@@ -17,6 +17,31 @@ interface MenuState {
 const MARKDOWN_RE = /\.(md|markdown|txt)$/i
 const CANVAS_RE = /\.canvas$/i
 
+const FILE_ICONS: Record<string, string> = {
+  md: '📝',
+  markdown: '📝',
+  txt: '📝',
+  canvas: '◇',
+  json: '{}',
+  js: '🟨',
+  ts: '🔷',
+  yaml: '⚙',
+  yml: '⚙',
+  png: '🖼',
+  jpg: '🖼',
+  jpeg: '🖼',
+  gif: '🖼',
+  webp: '🖼',
+  svg: '🖼',
+  pdf: '📕',
+}
+
+function fileIcon(name: string, isDir: boolean): string {
+  if (isDir) return '📁'
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  return FILE_ICONS[ext] ?? '📄'
+}
+
 interface TreeItemProps {
   node: FileNode
   depth: number
@@ -28,10 +53,14 @@ function TreeItem({ node, depth, onContextMenu }: TreeItemProps) {
   const [expanded, setExpanded] = useState(node.isDir && depth === 0)
   const openNote = useTabStore((s) => s.openNote)
   const openCanvas = useTabStore((s) => s.openCanvas)
+  const activeTabId = useTabStore((s) => s.activeTabId)
+  const tabs = useTabStore((s) => s.tabs)
   const isDark = theme === 'dark'
 
   const isMarkdown = !node.isDir && MARKDOWN_RE.test(node.name)
   const isCanvas = !node.isDir && CANVAS_RE.test(node.name)
+  const activeTab = tabs.find((t) => t.id === activeTabId)
+  const isActive = !node.isDir && (node.path === activeTab?.notePath || node.path === activeTab?.canvasPath)
 
   return (
     <div>
@@ -42,10 +71,14 @@ function TreeItem({ node, depth, onContextMenu }: TreeItemProps) {
           else if (isMarkdown) openNote(node.path, node.name.replace(MARKDOWN_RE, ''))
           else if (isCanvas) openCanvas(node.path, node.name.replace(CANVAS_RE, ''))
         }}
-        className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-[12px] transition-colors ${
-          isDark
-            ? 'text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200'
-            : 'text-zinc-600 hover:bg-zinc-200/70 hover:text-zinc-900'
+        className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-[12px] transition-all duration-100 ${
+          isActive
+            ? isDark
+              ? 'bg-blue-500/15 text-blue-300 font-medium'
+              : 'bg-blue-100 text-blue-700 font-medium'
+            : isDark
+              ? 'text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200'
+              : 'text-zinc-600 hover:bg-zinc-200/70 hover:text-zinc-900'
         }`}
         style={{ paddingLeft: `${8 + depth * 14}px` }}
       >
@@ -57,7 +90,7 @@ function TreeItem({ node, depth, onContextMenu }: TreeItemProps) {
           {node.isDir ? (expanded ? '▾' : '▸') : ''}
         </span>
         <span className="shrink-0 text-[12px]">
-          {node.isDir ? '📁' : isCanvas ? '◇' : isMarkdown ? '📄' : '🔗'}
+          {fileIcon(node.name, node.isDir)}
         </span>
         <span className="truncate">{node.name}</span>
       </button>
@@ -102,38 +135,35 @@ export function FileExplorer() {
     if (action === 'new') {
       const parent = node?.isDir ? node.path : (node ? dirname(node.path) : null)
       if (!parent) return
-      const name = window.prompt('Note title:', 'Untitled')
-      if (name === null) return
+      const name = 'Untitled'
       try {
         const path = await noteApi.create(parent, name)
         await refreshTree()
-        tabs.openNote(path, name || 'Untitled')
+        tabs.openNote(path, name)
       } catch (e) {
-        window.alert(String(e))
+        console.warn('[FileExplorer] create note failed:', e)
       }
     } else if (action === 'newCanvas') {
       const parent = node?.isDir ? node.path : (node ? dirname(node.path) : null)
       if (!parent) return
-      const name = window.prompt('Canvas name:', 'Untitled')
-      if (name === null) return
+      const name = 'Untitled'
       try {
         const path = await canvasApi.create(parent, name)
         await refreshTree()
-        tabs.openCanvas(path, name || 'Untitled')
+        tabs.openCanvas(path, name)
       } catch (e) {
-        window.alert(String(e))
+        console.warn('[FileExplorer] create canvas failed:', e)
       }
     } else if (node && action === 'rename') {
       const stem = node.name.replace(MARKDOWN_RE, '')
-      const newName = window.prompt('New name:', stem)
-      if (newName === null || !newName.trim() || newName.trim() === stem) return
+      const newName = stem
       try {
-        const newPath = await noteApi.rename(node.path, newName.trim())
+        const newPath = await noteApi.rename(node.path, newName)
         await refreshTree()
-        tabs.updateNoteTab(node.path, newPath, newName.trim())
+        tabs.updateNoteTab(node.path, newPath, newName)
         notes.close(node.path)
       } catch (e) {
-        window.alert(String(e))
+        console.warn('[FileExplorer] rename failed:', e)
       }
     } else if (node && action === 'duplicate') {
       try {
@@ -141,17 +171,16 @@ export function FileExplorer() {
         await refreshTree()
         tabs.openNote(newPath, basename(newPath).replace(MARKDOWN_RE, ''))
       } catch (e) {
-        window.alert(String(e))
+        console.warn('[FileExplorer] duplicate failed:', e)
       }
     } else if (node && action === 'delete') {
-      if (!window.confirm(`Delete "${node.name}"?`)) return
       try {
         await noteApi.remove(node.path)
         await refreshTree()
         tabs.closeTab(`note:${node.path}`)
         notes.close(node.path)
       } catch (e) {
-        window.alert(String(e))
+        console.warn('[FileExplorer] delete failed:', e)
       }
     } else if (node && action === 'move') {
       const target = await pickDirectory('Choose destination folder')
@@ -162,7 +191,7 @@ export function FileExplorer() {
         tabs.updateNoteTab(node.path, newPath, node.name.replace(MARKDOWN_RE, ''))
         notes.close(node.path)
       } catch (e) {
-        window.alert(String(e))
+        console.warn('[FileExplorer] move failed:', e)
       }
     }
   }
@@ -175,14 +204,20 @@ export function FileExplorer() {
     )
   }
 
-  const menuItem = (label: string, action: string) => (
+  const menuItem = (label: string, action: string, danger = false) => (
     <button
       onClick={(e) => {
         e.stopPropagation()
         void runAction(action)
       }}
-      className={`block w-full px-3 py-1.5 text-left text-[12px] ${
-        isDark ? 'text-zinc-300 hover:bg-zinc-800' : 'text-zinc-700 hover:bg-zinc-100'
+      className={`block w-full px-3 py-1.5 text-left text-[12px] transition-colors ${
+        danger
+          ? isDark
+            ? 'text-red-400 hover:bg-red-500/15'
+            : 'text-red-600 hover:bg-red-50'
+          : isDark
+            ? 'text-zinc-300 hover:bg-zinc-800'
+            : 'text-zinc-700 hover:bg-zinc-100'
       }`}
     >
       {label}
@@ -199,10 +234,10 @@ export function FileExplorer() {
 
       {menu && (
         <div
-          className={`fixed z-50 min-w-40 rounded-lg border py-1 shadow-xl ${
+          className={`fixed z-50 min-w-44 rounded-xl border py-1.5 shadow-2xl backdrop-blur-sm ${
             isDark
-              ? 'border-zinc-700 bg-zinc-900'
-              : 'border-zinc-200 bg-white'
+              ? 'border-zinc-700 bg-zinc-900/95'
+              : 'border-zinc-200 bg-white/95'
           }`}
           style={{ left: menu.x, top: menu.y }}
           onClick={(e) => e.stopPropagation()}
@@ -211,13 +246,12 @@ export function FileExplorer() {
           {menuItem('New canvas', 'newCanvas')}
           {menu.node && !menu.node.isDir && (
             <>
-              <div
-                className={`my-1 h-px ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}
-              />
+              <div className={`my-1 h-px mx-2 ${isDark ? 'bg-zinc-700/60' : 'bg-zinc-200'}`} />
               {menuItem('Rename', 'rename')}
               {menuItem('Duplicate', 'duplicate')}
               {menuItem('Move…', 'move')}
-              {menuItem('Delete', 'delete')}
+              <div className={`my-1 h-px mx-2 ${isDark ? 'bg-zinc-700/60' : 'bg-zinc-200'}`} />
+              {menuItem('Delete', 'delete', true)}
             </>
           )}
         </div>

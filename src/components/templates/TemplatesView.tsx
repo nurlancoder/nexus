@@ -64,26 +64,35 @@ export function TemplatesView() {
         <div className="flex w-56 shrink-0 flex-col overflow-auto border-r p-2" style={{ borderColor: isDark ? '#27272a' : '#e4e4e7' }}>
           {loading && <p className={`p-2 text-[12px] ${mutedText}`}>Loading…</p>}
           {!loading && templates.length === 0 && (
-            <p className={`p-2 text-[12px] ${mutedText}`}>
-              No templates. Add .md files to `07-Templates`.
-            </p>
+            <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
+              <div className="text-3xl opacity-40">📄</div>
+              <p className={`text-[12px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                No templates found
+              </p>
+              <p className={`text-[11px] ${mutedText}`}>
+                Add .md files to your `07-Templates` folder to get started.
+              </p>
+            </div>
           )}
           {templates.map((t) => (
             <button
               key={t.path}
               onClick={() => void useTemplateStore.getState().select(t.name)}
-              className={`mb-0.5 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors ${
+              className={`mb-0.5 flex items-center gap-2 rounded-md px-2 py-2 text-left text-[12px] transition-colors ${
                 t.name === selectedName
                   ? isDark
-                    ? 'bg-blue-500/15 text-blue-300'
-                    : 'bg-blue-100 text-blue-700'
+                    ? 'bg-blue-500/15 text-blue-300 border-l-2 border-blue-400'
+                    : 'bg-blue-100 text-blue-700 border-l-2 border-blue-500'
                   : isDark
                     ? 'text-zinc-300 hover:bg-zinc-800'
                     : 'text-zinc-700 hover:bg-zinc-100'
               }`}
             >
-              <div className="truncate font-medium">{t.name.replace(/\.(md|markdown)$/i, '')}</div>
-              <div className={`truncate text-[10px] ${mutedText}`}>{t.name}</div>
+              <span className="text-[11px] opacity-50">📄</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{t.name.replace(/\.(md|markdown)$/i, '')}</div>
+                <div className={`truncate text-[10px] ${mutedText}`}>{t.name}</div>
+              </div>
             </button>
           ))}
         </div>

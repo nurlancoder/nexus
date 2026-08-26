@@ -72,7 +72,7 @@ export function WelcomeScreen() {
         isDark ? 'bg-zinc-950 text-zinc-100' : 'bg-zinc-50 text-zinc-900'
       }`}
     >
-      <div className="text-center">
+      <div className="nexus-scale-in text-center">
         <h1 className="text-3xl font-bold tracking-wide">NEXUS</h1>
         <p className={`mt-2 text-[13px] ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
           Local-first knowledge workspace
@@ -85,8 +85,10 @@ export function WelcomeScreen() {
         }`}
       >
         <div
-          className={`rounded-xl border p-5 ${
-            isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-white'
+          className={`rounded-xl border p-5 transition-all hover:scale-[1.02] hover:shadow-lg ${
+            isDark
+              ? 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
+              : 'border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-zinc-200/50'
           }`}
         >
           <h2 className="mb-1 text-sm font-semibold">Create workspace</h2>
@@ -113,8 +115,10 @@ export function WelcomeScreen() {
         </div>
 
         <div
-          className={`rounded-xl border p-5 ${
-            isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-white'
+          className={`rounded-xl border p-5 transition-all hover:scale-[1.02] hover:shadow-lg ${
+            isDark
+              ? 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
+              : 'border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-zinc-200/50'
           }`}
         >
           <h2 className="mb-1 text-sm font-semibold">Open workspace</h2>
@@ -132,8 +136,10 @@ export function WelcomeScreen() {
 
         {isTauri() && (
           <div
-            className={`rounded-xl border p-5 ${
-              isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-white'
+            className={`rounded-xl border p-5 transition-all hover:scale-[1.02] hover:shadow-lg ${
+              isDark
+                ? 'border-zinc-800 bg-zinc-900 hover:border-zinc-700'
+                : 'border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-zinc-200/50'
             }`}
           >
             <h2 className="mb-1 text-sm font-semibold">Recent</h2>
@@ -161,7 +167,29 @@ export function WelcomeScreen() {
         )}
       </div>
 
-      {error && <p className="text-[12px] text-red-500">{error}</p>}
+      {error && (
+        <div
+          className={`w-full max-w-3xl rounded-lg border px-4 py-3 text-[12px] ${
+            isDark
+              ? 'border-red-500/30 bg-red-500/10 text-red-400'
+              : 'border-red-300 bg-red-50 text-red-600'
+          }`}
+        >
+          {error}
+        </div>
+      )}
+
+      <div
+        className={`flex items-center gap-4 text-[11px] ${
+          isDark ? 'text-zinc-600' : 'text-zinc-400'
+        }`}
+      >
+        <span>⌘K to open commands</span>
+        <span>·</span>
+        <span>⌘N to create a note</span>
+        <span>·</span>
+        <span>v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}</span>
+      </div>
     </div>
   )
 }

@@ -28,6 +28,12 @@ export function TabBar() {
 
   if (tabs.length === 0) return null
 
+  const tabIcon = (tab: (typeof tabs)[number]) => {
+    if (tab.kind === 'note') return '📝'
+    if (tab.kind === 'canvas') return '◇'
+    return '◻'
+  }
+
   return (
     <div
       className={`flex h-9 shrink-0 items-end gap-0.5 overflow-x-auto border-b px-1.5 ${
@@ -52,14 +58,16 @@ export function TabBar() {
             className={`group flex min-w-0 max-w-[180px] cursor-pointer items-center gap-1.5 rounded-t-md px-2.5 py-1.5 text-[12px] ${
               active
                 ? isDark
-                  ? 'border border-b-0 border-zinc-800 bg-zinc-950 text-zinc-100'
-                  : 'border border-b-0 border-zinc-200 bg-white text-zinc-900'
+                  ? 'border border-b-0 border-zinc-800 bg-zinc-950 font-semibold text-zinc-100'
+                  : 'border border-b-0 border-zinc-200 bg-white font-semibold text-zinc-900'
                 : isDark
                   ? 'text-zinc-500 hover:text-zinc-300'
                   : 'text-zinc-500 hover:text-zinc-800'
             }`}
+            style={active ? { borderBottom: isDark ? '2px solid #3b82f6' : '2px solid #3b82f6' } : undefined}
             title={tab.title}
           >
+            <span className="text-[10px] shrink-0">{tabIcon(tab)}</span>
             <span className="truncate">{tab.title}</span>
             {isDirty(tab) && (
               <span className={`shrink-0 text-[10px] ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
@@ -74,7 +82,7 @@ export function TabBar() {
               title={splitTabId === tab.id ? 'Remove from split' : 'Show in split pane'}
               aria-label={splitTabId === tab.id ? `Remove ${tab.title} from split` : `Show ${tab.title} in split pane`}
               aria-pressed={splitTabId === tab.id}
-              className={`hidden shrink-0 rounded-sm px-1 text-[10px] group-hover:block ${
+              className={`shrink-0 rounded-sm px-1 text-[10px] opacity-40 transition-opacity group-hover:opacity-100 ${
                 splitTabId === tab.id
                   ? 'text-blue-500'
                   : isDark
@@ -90,7 +98,7 @@ export function TabBar() {
                 closeTab(tab.id)
               }}
               aria-label={`Close ${tab.title}`}
-              className={`ml-0.5 hidden shrink-0 rounded-sm px-1 text-[10px] group-hover:block ${
+              className={`ml-0.5 shrink-0 rounded-sm px-1 text-[10px] opacity-40 transition-opacity group-hover:opacity-100 ${
                 isDark
                   ? 'text-zinc-500 hover:bg-zinc-700 hover:text-zinc-100'
                   : 'text-zinc-400 hover:bg-zinc-200 hover:text-zinc-800'

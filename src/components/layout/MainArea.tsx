@@ -24,8 +24,8 @@ function LoadingIndicator() {
   const isDark = useWorkspaceStore((s) => s.theme) === 'dark'
   return (
     <div className="flex h-full items-center justify-center">
-      <div className={`h-5 w-5 animate-spin rounded-full border-2 ${
-        isDark ? 'border-zinc-600 border-t-zinc-300' : 'border-zinc-300 border-t-zinc-700'
+      <div className={`h-8 w-8 animate-spin rounded-full border-2 ${
+        isDark ? 'border-zinc-600 border-t-blue-400' : 'border-zinc-300 border-t-blue-500'
       }`} />
     </div>
   )
@@ -97,6 +97,16 @@ function SplitDivider() {
       className="group relative z-10 w-px shrink-0 cursor-col-resize bg-transparent"
     >
       <div className="absolute inset-y-0 -left-1 w-2 transition-colors group-hover:bg-blue-400" />
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex flex-col gap-[2px]">
+          <span className="block h-[2px] w-[2px] rounded-full bg-zinc-500" />
+          <span className="block h-[2px] w-[2px] rounded-full bg-zinc-500" />
+          <span className="block h-[2px] w-[2px] rounded-full bg-zinc-500" />
+          <span className="block h-[2px] w-[2px] rounded-full bg-zinc-500" />
+          <span className="block h-[2px] w-[2px] rounded-full bg-zinc-500" />
+          <span className="block h-[2px] w-[2px] rounded-full bg-zinc-500" />
+        </div>
+      </div>
     </div>
   )
 }
@@ -127,14 +137,14 @@ export function MainArea() {
               <PaneContent tab={activeTab} />
             </ErrorBoundary>
           ) : (
-            <div className="flex h-full items-center justify-center">
+            <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+              <div className="text-5xl opacity-20">◈</div>
+              <p className={`text-[13px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                No open tabs
+              </p>
               <button
                 onClick={() => useTabStore.getState().openView('inbox', 'Inbox')}
-                className={`rounded-md px-4 py-2 text-[13px] font-medium ${
-                  isDark
-                    ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
-                    : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'
-                }`}
+                className="rounded-md bg-blue-600 px-4 py-2 text-[13px] font-medium text-white hover:bg-blue-500"
               >
                 Open Inbox
               </button>

@@ -43,6 +43,8 @@ export function DatabaseView() {
   const [error, setError] = useState('')
   const [refreshNonce, setRefreshNonce] = useState(0)
   const [newName, setNewName] = useState('')
+  const [scrolled, setScrolled] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const active = metas.find((m) => m.name === activeName)
   const dirs = useMemo(() => collectDirs(fileTree), [fileTree])
@@ -58,6 +60,14 @@ export function DatabaseView() {
 
   useEffect(() => {
     void useDatabaseStore.getState().load()
+  }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onScroll = () => setScrolled(el.scrollTop > 2)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
   useEffect(() => {
@@ -132,7 +142,6 @@ export function DatabaseView() {
 
   const removeActive = () => {
     if (!activeName) return
-    if (!window.confirm(`Delete database "${activeName}"?`)) return
     void useDatabaseStore.getState().remove(activeName)
   }
 
@@ -236,18 +245,42 @@ export function DatabaseView() {
                 </option>
               ))}
             </select>
-            <input
-              value={def.filterKey ?? ''}
-              onChange={(e) => updateDef({ filterKey: e.target.value || null })}
-              placeholder="Property"
-              className={`${inputCls} w-28`}
-            />
-            <input
-              value={def.filterValue ?? ''}
-              onChange={(e) => updateDef({ filterValue: e.target.value || null })}
-              placeholder="Equals… (a, b = or)"
-              className={`${inputCls} w-36`}
-            />
+            <div className="relative">
+              <input
+                value={def.filterKey ?? ''}
+                onChange={(e) => updateDef({ filterKey: e.target.value || null })}
+                placeholder="Property"
+                className={`${inputCls} w-28 pr-5`}
+              />
+              {def.filterKey && (
+                <button
+                  onClick={() => updateDef({ filterKey: null })}
+                  className={`absolute right-1 top-1/2 -translate-y-1/2 text-[10px] ${
+                    isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-600'
+                  }`}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                value={def.filterValue ?? ''}
+                onChange={(e) => updateDef({ filterValue: e.target.value || null })}
+                placeholder="Equals… (a, b = or)"
+                className={`${inputCls} w-36 pr-5`}
+              />
+              {def.filterValue && (
+                <button
+                  onClick={() => updateDef({ filterValue: null })}
+                  className={`absolute right-1 top-1/2 -translate-y-1/2 text-[10px] ${
+                    isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-600'
+                  }`}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
             <span className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
               Sort by
             </span>
@@ -267,7 +300,15 @@ export function DatabaseView() {
               onClick={() =>
                 updateDef({ sortDir: def.sortDir === 'desc' ? 'asc' : 'desc' })
               }
-              className={btn}
+              className={`rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
+                def.sortKey
+                  ? isDark
+                    ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  : isDark
+                    ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                    : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300'
+              }`}
               title="Toggle sort direction"
             >
               {def.sortDir === 'desc' ? '↓ Desc' : '↑ Asc'}
@@ -289,19 +330,23 @@ export function DatabaseView() {
               </span>
               {chipKeys.map((k) => {
                 const on = columns.includes(k)
+                const chipColors: Record<string, string> = {
+                  status: on ? (isDark ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-amber-100 text-amber-700 hover:bg-amber-200') : '',
+                  tags: on ? (isDark ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30' : 'bg-purple-100 text-purple-700 hover:bg-purple-200') : '',
+                  priority: on ? (isDark ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' : 'bg-red-100 text-red-700 hover:bg-red-200') : '',
+                }
+                const colorClass = chipColors[k] || (on
+                  ? isDark
+                    ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  : isDark
+                    ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                    : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200')
                 return (
                   <button
                     key={k}
                     onClick={() => toggleColumn(k)}
-                    className={`rounded-full px-2 py-0.5 text-[11px] transition-colors ${
-                      on
-                        ? isDark
-                          ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                        : isDark
-                          ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                          : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
-                    }`}
+                    className={`rounded-full px-2 py-0.5 text-[11px] transition-colors ${colorClass}`}
                   >
                     {on ? '✓ ' : ''}
                     {k}
@@ -311,7 +356,7 @@ export function DatabaseView() {
             </div>
           )}
 
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
             {loading && (
               <p
                 className={`p-4 text-[13px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}
@@ -321,19 +366,23 @@ export function DatabaseView() {
             )}
             {error && <p className="p-4 text-[13px] text-red-500">{error}</p>}
             {!loading && !error && sorted.length === 0 && (
-              <p
-                className={`p-4 text-[13px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}
-              >
-                No matching notes.
-              </p>
+              <div className="flex flex-col items-center gap-2 py-12 text-center">
+                <div className="text-4xl opacity-40">▦</div>
+                <p className={`text-[13px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  No matching notes
+                </p>
+                <p className={`text-[12px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                  {def.filterKey || def.filterValue ? 'Try adjusting your filters.' : 'No notes found in the selected source folders.'}
+                </p>
+              </div>
             )}
             {!loading && !error && sorted.length > 0 && (
               <table className="w-full border-collapse text-left text-[12px]">
                 <thead>
                   <tr
-                    className={`sticky top-0 z-10 ${
+                    className={`sticky top-0 z-10 transition-shadow ${
                       isDark ? 'bg-zinc-900' : 'bg-white'
-                    }`}
+                    } ${scrolled ? 'shadow-sm' : ''}`}
                   >
                     <th
                       className={`border-b px-3 py-2 font-semibold ${

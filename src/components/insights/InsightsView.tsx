@@ -8,10 +8,12 @@ function StatCard({
   label,
   value,
   tone,
+  icon,
 }: {
   label: string
   value: number | string
   tone?: 'warn' | 'bad' | 'good'
+  icon?: string
 }) {
   const { theme } = useWorkspaceStore()
   const isDark = theme === 'dark'
@@ -25,11 +27,48 @@ function StatCard({
           : isDark
             ? 'border-zinc-800'
             : 'border-zinc-200'
+  const accent =
+    tone === 'bad'
+      ? 'text-red-400'
+      : tone === 'warn'
+        ? 'text-amber-400'
+        : tone === 'good'
+          ? 'text-emerald-400'
+          : isDark
+            ? 'text-zinc-300'
+            : 'text-zinc-700'
   return (
-    <div className={`flex-1 rounded-lg border p-3 ${border}`}>
-      <div className="text-[18px] font-semibold">{value}</div>
-      <div className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{label}</div>
+    <div className={`flex items-center gap-3 flex-1 rounded-lg border p-3 ${border}`}>
+      {icon && <span className={`text-lg ${accent}`}>{icon}</span>}
+      <div>
+        <div className={`text-[18px] font-semibold ${accent}`}>{value}</div>
+        <div className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{label}</div>
+      </div>
     </div>
+  )
+}
+
+function HealthRing({ score, size = 64, isDark }: { score: number; size?: number; isDark: boolean }) {
+  const r = (size - 8) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ - (score / 100) * circ
+  const color = score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444'
+  return (
+    <svg width={size} height={size} className="shrink-0 -rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={isDark ? '#3f3f46' : '#e4e4e7'} strokeWidth={5} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={5}
+        strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+        className="transition-all duration-700 ease-out"
+      />
+      <text
+        x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central"
+        className="fill-current rotate-90"
+        style={{ fontSize: size * 0.28, fontWeight: 600 }}
+      >
+        {score}
+      </text>
+    </svg>
   )
 }
 
@@ -123,34 +162,29 @@ export function InsightsView() {
         )}
         {report && (
           <>
-            <div className="flex gap-3">
-              <StatCard label="Notes" value={report.totals.notes} />
-              <StatCard
-                label="Orphan notes"
-                value={report.totals.orphans}
-                tone={report.totals.orphans > 0 ? 'warn' : 'good'}
-              />
-              <StatCard
-                label="Broken links"
-                value={report.totals.brokenLinks}
-                tone={report.totals.brokenLinks > 0 ? 'bad' : 'good'}
-              />
-              <StatCard
-                label="Duplicate groups"
-                value={report.totals.duplicateGroups}
-                tone={report.totals.duplicateGroups > 0 ? 'warn' : 'good'}
-              />
-              <StatCard
-                label="Avg health"
-                value={`${report.totals.avgHealth}`}
-                tone={
-                  report.totals.avgHealth >= 70
-                    ? 'good'
-                    : report.totals.avgHealth >= 40
-                      ? 'warn'
-                      : 'bad'
-                }
-              />
+            <div className="flex items-center gap-4">
+              <HealthRing score={report.totals.avgHealth} isDark={isDark} />
+              <div className="flex flex-1 gap-3">
+                <StatCard label="Notes" value={report.totals.notes} icon="📝" />
+                <StatCard
+                  label="Orphan notes"
+                  value={report.totals.orphans}
+                  tone={report.totals.orphans > 0 ? 'warn' : 'good'}
+                  icon="🕸"
+                />
+                <StatCard
+                  label="Broken links"
+                  value={report.totals.brokenLinks}
+                  tone={report.totals.brokenLinks > 0 ? 'bad' : 'good'}
+                  icon="🔗"
+                />
+                <StatCard
+                  label="Duplicate groups"
+                  value={report.totals.duplicateGroups}
+                  tone={report.totals.duplicateGroups > 0 ? 'warn' : 'good'}
+                  icon="⧉"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">

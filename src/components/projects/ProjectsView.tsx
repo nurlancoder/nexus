@@ -54,6 +54,19 @@ export function ProjectsView() {
       : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300'
   }`
 
+  const backBtn = `rounded-md px-2.5 py-1.5 text-[12px] transition-all ${
+    isDark
+      ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+      : 'text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800'
+  }`
+
+  const priorityBadge = (priority: string) => {
+    const p = priority.toLowerCase()
+    if (p === 'high') return 'bg-red-500/15 text-red-400 ring-1 ring-red-500/30'
+    if (p === 'medium' || p === 'med') return 'bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/30'
+    return 'bg-blue-500/15 text-blue-400 ring-1 ring-blue-500/30'
+  }
+
   const mutedText = isDark ? 'text-zinc-500' : 'text-zinc-400'
   const sectionTitle = `mb-2 text-[11px] font-semibold uppercase tracking-widest ${mutedText}`
 
@@ -61,14 +74,14 @@ export function ProjectsView() {
     return (
       <div className="flex h-full flex-col overflow-hidden">
         <div
-          className={`flex h-11 shrink-0 items-center gap-3 border-b px-3 ${
+          className={`flex h-14 shrink-0 items-center gap-3 border-b px-4 ${
             isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'
           }`}
         >
-          <button onClick={() => useProjectStore.getState().closeProject()} className={btn}>
-            ← All projects
+          <button onClick={() => useProjectStore.getState().closeProject()} className={backBtn}>
+            ← Projects
           </button>
-          <span className="text-[13px] font-medium">{detail.name}</span>
+          <span className={`text-[15px] font-semibold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{detail.name}</span>
           <div className="w-40">
             <ProgressBar
               done={detail.tasks.filter((t) => t.done).length}
@@ -128,7 +141,7 @@ export function ProjectsView() {
                     {t.text}
                   </span>
                   {t.priority && (
-                    <span className="shrink-0 text-[10px] capitalize text-red-500">
+                    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium capitalize ${priorityBadge(t.priority)}`}>
                       {t.priority}
                     </span>
                   )}

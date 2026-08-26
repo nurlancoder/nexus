@@ -44,6 +44,7 @@ export function AttachmentsView() {
   const isDark = theme === 'dark'
 
   const [dragOver, setDragOver] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -117,15 +118,32 @@ export function AttachmentsView() {
           {loading && <p className={`text-[13px] ${mutedText}`}>Loading attachments…</p>}
           {!loading && items.length === 0 && (
             <div
-              className={`flex h-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-center ${
-                dragOver ? 'border-blue-500' : isDark ? 'border-zinc-800' : 'border-zinc-300'
+              className={`flex h-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+                dragOver
+                  ? 'border-blue-500 bg-blue-500/5'
+                  : isDark
+                    ? 'border-zinc-700 bg-zinc-900/30'
+                    : 'border-zinc-300 bg-zinc-50'
               }`}
             >
               <div className="text-5xl opacity-40">📎</div>
-              <p className={`max-w-xs text-[13px] ${mutedText}`}>
-                Drag & drop files here, or click Upload. Files are stored in the
-                workspace's `06-Attachments` folder.
+              <p className={`text-[14px] font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                No attachments yet
               </p>
+              <p className={`max-w-xs text-[12px] ${mutedText}`}>
+                Drag & drop files here, or click Upload. Files are stored in your workspace's `06-Attachments` folder.
+              </p>
+            </div>
+          )}
+          {items.length > 0 && (
+            <div className={`mb-3 rounded-xl border-2 border-dashed p-4 text-center transition-colors ${
+              dragOver
+                ? 'border-blue-500 bg-blue-500/5'
+                : isDark
+                  ? 'border-zinc-700/50 bg-zinc-900/20'
+                  : 'border-zinc-200 bg-zinc-50/50'
+            }`}>
+              <p className={`text-[12px] ${mutedText}`}>Drop files here to upload</p>
             </div>
           )}
           <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
@@ -153,16 +171,12 @@ export function AttachmentsView() {
                   tabIndex={0}
                   onClick={(e) => {
                     e.stopPropagation()
-                    if (window.confirm(`Delete "${item.name}"?`)) {
-                      void useAttachmentStore.getState().remove(item.path)
-                    }
+                    setConfirmDelete(confirmDelete === item.path ? null : item.path)
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.stopPropagation()
-                      if (window.confirm(`Delete "${item.name}"?`)) {
-                        void useAttachmentStore.getState().remove(item.path)
-                      }
+                      setConfirmDelete(confirmDelete === item.path ? null : item.path)
                     }
                   }}
                   className={`absolute top-1.5 right-1.5 hidden rounded px-1 text-[11px] group-hover:block ${
@@ -171,6 +185,32 @@ export function AttachmentsView() {
                 >
                   🗑
                 </span>
+                {confirmDelete === item.path && (
+                  <div
+                    className={`absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-lg ${
+                      isDark ? 'bg-zinc-900/95' : 'bg-white/95'
+                    }`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => {
+                        void useAttachmentStore.getState().remove(item.path)
+                        setConfirmDelete(null)
+                      }}
+                      className="rounded-md bg-red-500 px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-red-600"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(null)}
+                      className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${
+                        isDark ? 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600' : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300'
+                      }`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -208,10 +248,12 @@ function AttachmentPreview({
   const [data, setData] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   const [prevPath, setPrevPath] = useState(path)
+  const [imgZoom, setImgZoom] = useState(1)
   if (prevPath !== path) {
     setPrevPath(path)
     setData(null)
     setFailed(false)
+    setImgZoom(1)
   }
 
   useEffect(() => {
@@ -265,7 +307,39 @@ function AttachmentPreview({
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-3">
         {kind === 'image' && src && (
-          <img src={src} alt={name} className="max-h-full max-w-full rounded-md object-contain" />
+          <div className="flex flex-col items-center gap-2">
+            <div className="overflow-auto max-h-full max-w-full rounded-md">
+              <img
+                src={src}
+                alt={name}
+                className="rounded-md object-contain transition-transform duration-200"
+                style={{ transform: `scale(${imgZoom})`, transformOrigin: 'center center' }}
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setImgZoom((z) => Math.max(0.25, z - 0.25))}
+                className={`rounded px-1.5 py-0.5 text-[10px] ${isDark ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
+              >
+                −
+              </button>
+              <span className={`w-10 text-center text-[10px] tabular-nums ${mutedText}`}>
+                {Math.round(imgZoom * 100)}%
+              </span>
+              <button
+                onClick={() => setImgZoom((z) => Math.min(3, z + 0.25))}
+                className={`rounded px-1.5 py-0.5 text-[10px] ${isDark ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
+              >
+                +
+              </button>
+              <button
+                onClick={() => setImgZoom(1)}
+                className={`rounded px-1.5 py-0.5 text-[10px] ${isDark ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
         )}
         {kind === 'pdf' && src && (
           <iframe src={src} title={name} className="h-full w-full rounded-md border-0 bg-white" />
