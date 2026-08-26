@@ -136,7 +136,7 @@ pub fn collect_events(workspace_path: &str, year: i32, month: u32) -> Result<Vec
 }
 
 fn today() -> String {
-  chrono::Local::now().format("%Y-%m-%d").to_string()
+  crate::util::today()
 }
 
 pub fn open_daily_note(workspace_path: &str, date: &str) -> Result<DailyNoteInfo, String> {

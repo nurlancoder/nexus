@@ -58,21 +58,11 @@ fn fmt_modified(meta: &std::fs::Metadata) -> String {
 }
 
 fn is_note(name: &str) -> bool {
-  let ext = Path::new(name)
-    .extension()
-    .map(|e| e.to_string_lossy().to_lowercase())
-    .unwrap_or_default();
-  ext == "md" || ext == "markdown"
+  crate::util::is_note(name)
 }
 
 fn find_workspace_id(conn: &rusqlite::Connection, path: &Path) -> Option<i64> {
-  conn
-    .query_row(
-      "SELECT id FROM workspaces WHERE path = ?1",
-      rusqlite::params![path.to_string_lossy()],
-      |r| r.get(0),
-    )
-    .ok()
+  crate::util::find_workspace_id(conn, path).ok()
 }
 
 fn projects_root(workspace_path: &str) -> Result<std::path::PathBuf, String> {

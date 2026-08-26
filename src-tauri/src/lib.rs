@@ -13,6 +13,7 @@ mod search;
 mod security;
 mod tasks;
 mod templates;
+mod util;
 mod workspace;
 
 use db::Database;

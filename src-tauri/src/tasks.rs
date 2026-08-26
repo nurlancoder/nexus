@@ -226,13 +226,7 @@ pub fn collect_tasks(root: &Path) -> Result<Vec<Task>, String> {
 }
 
 fn find_workspace_id(conn: &rusqlite::Connection, path: &Path) -> Option<i64> {
-  conn
-    .query_row(
-      "SELECT id FROM workspaces WHERE path = ?1",
-      rusqlite::params![path.to_string_lossy()],
-      |r| r.get(0),
-    )
-    .ok()
+  crate::util::find_workspace_id(conn, path).ok()
 }
 
 #[tauri::command]

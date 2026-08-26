@@ -7,21 +7,11 @@ use crate::security;
 pub const EMPTY_CANVAS: &str = r#"{"nodes":[],"edges":[],"groups":[],"viewport":{"x":0,"y":0,"zoom":1}}"#;
 
 fn slugify(name: &str) -> String {
-  name.chars()
-    .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-' || *c == '_')
-    .collect::<String>()
-    .trim()
-    .to_string()
+  crate::util::slugify(name)
 }
 
 fn unique_path(dir: &Path, base: &str, suffix: &str) -> PathBuf {
-  let mut candidate = dir.join(format!("{base}{suffix}"));
-  let mut i = 2;
-  while candidate.exists() {
-    candidate = dir.join(format!("{base} {i}{suffix}"));
-    i += 1;
-  }
-  candidate
+  crate::util::unique_path(dir, base, suffix)
 }
 
 #[tauri::command]

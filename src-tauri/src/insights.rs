@@ -62,21 +62,7 @@ pub struct InsightsReport {
 }
 
 fn body_after_frontmatter(content: &str) -> String {
-  let mut lines = content.lines();
-  if lines.next().map(|l| l.trim() == "---") != Some(true) {
-    return content.to_string();
-  }
-  let mut end = None;
-  for (i, line) in lines.enumerate() {
-    if line.trim() == "---" {
-      end = Some(i + 2);
-      break;
-    }
-  }
-  match end {
-    Some(n) => content.lines().skip(n).collect::<Vec<_>>().join("\n"),
-    None => content.to_string(),
-  }
+  crate::util::body_after_frontmatter(content).to_string()
 }
 
 pub fn health_score(body: &str, has_frontmatter: bool, links_out: usize) -> i64 {
@@ -104,11 +90,7 @@ pub fn health_score(body: &str, has_frontmatter: bool, links_out: usize) -> i64 
 }
 
 fn is_note(name: &str) -> bool {
-  Path::new(name)
-    .extension()
-    .map(|e| e.to_string_lossy().to_lowercase())
-    .map(|e| e == "md" || e == "markdown")
-    .unwrap_or(false)
+  crate::util::is_note(name)
 }
 
 pub fn build_report(root: &Path) -> Result<InsightsReport, String> {

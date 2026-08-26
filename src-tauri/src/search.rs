@@ -58,14 +58,8 @@ pub fn remove_note(conn: &Connection, path: &str) -> Result<(), String> {
   Ok(())
 }
 
-pub fn find_workspace_id(conn: &Connection, path: &Path) -> Result<i64, String> {
-  conn
-    .query_row(
-      "SELECT id FROM workspaces WHERE path = ?1",
-      params![path.to_string_lossy()],
-      |r| r.get(0),
-    )
-    .map_err(|e| e.to_string())
+fn find_workspace_id(conn: &Connection, path: &Path) -> Result<i64, String> {
+  crate::util::find_workspace_id(conn, path)
 }
 
 /// Resolves a workspace for an arbitrary path inside it (longest prefix wins).

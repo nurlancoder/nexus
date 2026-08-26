@@ -162,13 +162,7 @@ fn collect_rows(root: &Path, source_folders: &[String]) -> Result<Vec<DatabaseRo
 }
 
 fn find_workspace_id(conn: &Connection, path: &Path) -> Result<i64, String> {
-  conn
-    .query_row(
-      "SELECT id FROM workspaces WHERE path = ?1",
-      params![path.to_string_lossy()],
-      |r| r.get(0),
-    )
-    .map_err(|e| e.to_string())
+  crate::util::find_workspace_id(conn, path)
 }
 
 #[tauri::command]
