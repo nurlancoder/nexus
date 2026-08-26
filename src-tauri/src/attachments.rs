@@ -122,7 +122,7 @@ pub fn list_attachments(workspace_path: &str) -> Result<Vec<AttachmentInfo>, Str
     .filter(|n| !n.is_dir)
     .map(|n| info_for(Path::new(&n.path)))
     .collect();
-  out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+  out.sort_by_key(|a| a.name.to_lowercase());
   Ok(out)
 }
 

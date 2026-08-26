@@ -169,12 +169,10 @@ pub fn parse_tasks(content: &str) -> Vec<(usize, bool, String)> {
   let body = body_after_frontmatter(content);
   let mut out = Vec::new();
   let offset = content.len() - body.len();
-  let mut line_no = content[..offset].matches('\n').count();
-  for line in body.lines() {
+  for (line_no, line) in (content[..offset].matches('\n').count()..).zip(body.lines()) {
     if let Some((done, text)) = is_checkbox_line(line.trim_start()) {
       out.push((line_no, done, text.to_string()));
     }
-    line_no += 1;
   }
   out
 }

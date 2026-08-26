@@ -211,8 +211,8 @@ pub fn resolve_links<R: tauri::Runtime>(app: &tauri::AppHandle<R>, workspace_pat
     }
   }
 
-  backlinks.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
-  mentions.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+  backlinks.sort_by_key(|a| a.title.to_lowercase());
+  mentions.sort_by_key(|a| a.title.to_lowercase());
 
   Ok(LinkResolution { backlinks, mentions })
 }

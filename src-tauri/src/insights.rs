@@ -222,7 +222,7 @@ pub fn build_report(root: &Path) -> Result<InsightsReport, String> {
     health.iter().map(|h| h.score).sum::<i64>() / health.len() as i64
   };
 
-  health.sort_by(|a, b| a.score.cmp(&b.score));
+  health.sort_by_key(|a| a.score);
 
   Ok(InsightsReport {
     totals: InsightsTotals {
@@ -282,7 +282,7 @@ mod tests {
     let dir = ws("report");
     std::fs::write(
       dir.join("notes/hub.md"),
-      "# Hub\n\nSee [[Target]] and [[Ghost]].\n\nmore words ".repeat(1),
+      "# Hub\n\nSee [[Target]] and [[Ghost]].\n\nmore words ",
     )
     .unwrap();
     std::fs::write(dir.join("notes/target.md"), "# Target\n\ncontent here\n").unwrap();

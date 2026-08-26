@@ -118,7 +118,7 @@ pub fn graph(app: &tauri::AppHandle, workspace_path: &str) -> Result<Vec<GraphNo
     }
   }
 
-  raw.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+  raw.sort_by_key(|a| a.title.to_lowercase());
   Ok(raw)
 }
 

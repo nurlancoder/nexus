@@ -716,7 +716,7 @@ mod tests {
     let dir = std::env::temp_dir().join(format!("nexus_test_ws_create_null_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
 
-    assert!(validate_workspace_create(&format!("name\0evil"), dir.to_str().unwrap()).is_err());
+    assert!(validate_workspace_create("name\0evil", dir.to_str().unwrap()).is_err());
     assert!(validate_workspace_create("name", &dir.join("sub\0").to_string_lossy()).is_err());
 
     std::fs::remove_dir_all(&dir).unwrap();

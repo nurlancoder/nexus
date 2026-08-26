@@ -132,7 +132,7 @@ pub fn list_projects(workspace_path: &str) -> Result<Vec<ProjectSummary>, String
       updated_at: latest.unwrap_or_default(),
     });
   }
-  out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+  out.sort_by_key(|a| a.name.to_lowercase());
   Ok(out)
 }
 
@@ -182,7 +182,7 @@ pub fn project_detail(
     }
   }
   notes.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
-  resources.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+  resources.sort_by_key(|a| a.name.to_lowercase());
 
   let tasks = collect_tasks(&dir).unwrap_or_default();
 

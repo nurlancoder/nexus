@@ -152,13 +152,11 @@ pub fn search(
   let conn = db.conn();
   let workspace_id = find_workspace_id(&conn, root)?;
 
-  let sql = format!(
-    "SELECT path, title, snippet(note_index, 1, '\x01', '\x02', ' … ', 12)
+  let sql = "SELECT path, title, snippet(note_index, 1, '\x01', '\x02', ' … ', 12)
      FROM note_index
      WHERE note_index MATCH ?1 AND workspace_id = ?2
      ORDER BY rank
-     LIMIT ?3"
-  );
+     LIMIT ?3".to_string();
 
   let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
   let rows = stmt
