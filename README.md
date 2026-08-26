@@ -15,6 +15,15 @@ Notes + Knowledge + Projects + Tasks + Graph + Canvas + Databases — all in one
 
 ## Development
 
+**Rust requirement:** NEXUS requires **Rust 1.85+** (stable). The system `rustc` shipped with most Linux distributions is too old — install via [rustup](https://rustup.rs/):
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup default stable
+```
+
+Do not use `apt install rustc cargo` — the packaged version is typically pre-1.80 and will fail to build.
+
 ```bash
 npm install          # frontend deps
 npm run dev          # vite dev server (browser preview)

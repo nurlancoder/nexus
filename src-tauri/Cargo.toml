@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "NEXUS - Local-first knowledge workspace"
 authors = ["NEXUS"]
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.85.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -12,6 +12,10 @@ Release version lives in three places — keep them in sync:
 
 ## Build
 
+**Prerequisites:** Rust 1.85+ (stable) via [rustup](https://rustup.rs/) — do **not** use
+the system `rustc` from `apt` (too old). A `rust-toolchain.toml` in the repo root pins
+the toolchain automatically.
+
 ```bash
 npm install
 npm run tauri:build        # production build + bundles for the host OS
