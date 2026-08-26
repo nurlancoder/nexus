@@ -161,6 +161,9 @@ fn validate_workspace_create(parent_path: &str, name: &str) -> Result<(), String
   if parent_path.contains('\0') || name.contains('\0') {
     return Err("Path contains null byte".into());
   }
+  if name.contains("..") || name.contains('/') || name.contains('\\') {
+    return Err("Workspace name must not contain path separators or traversal".into());
+  }
   let parent = Path::new(parent_path);
   if !parent.is_dir() {
     return Err("Parent directory does not exist or is not a directory".into());
@@ -723,5 +726,19 @@ mod tests {
   fn workspace_create_rejects_nonexistent_parent() {
     let outside = std::env::temp_dir().join("nexus_ws_nonexistent_parent");
     assert!(validate_workspace_create(outside.to_str().unwrap(), "test").is_err());
+  }
+
+  #[test]
+  fn workspace_create_rejects_name_traversal() {
+    let dir = std::env::temp_dir().join(format!("nexus_test_ws_traversal_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let parent = dir.to_str().unwrap();
+
+    assert!(validate_workspace_create(parent, "../evil").is_err());
+    assert!(validate_workspace_create(parent, "a/b").is_err());
+    assert!(validate_workspace_create(parent, "a\\b").is_err());
+    assert!(validate_workspace_create(parent, "valid-name").is_ok());
+
+    std::fs::remove_dir_all(&dir).unwrap();
   }
 }
