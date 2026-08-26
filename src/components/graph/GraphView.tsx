@@ -23,6 +23,7 @@ export function GraphView({ focusPath }: GraphViewProps) {
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [hover, setHover] = useState<string | null>(null)
+  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 })
 
   const panRef = useRef(pan)
   const zoomRef = useRef(zoom)
@@ -48,6 +49,17 @@ export function GraphView({ focusPath }: GraphViewProps) {
   }, [focus])
 
   useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      setCanvasSize({ w: width, h: height })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  useEffect(() => {
     if (!workspace) return
     linkingApi
       .graph(workspace.path)
@@ -60,8 +72,8 @@ export function GraphView({ focusPath }: GraphViewProps) {
 
   const layout = useMemo(() => {
     if (raw.length === 0) return null
-    return runLayout(raw, 1200, 800, 120)
-  }, [raw])
+    return runLayout(raw, canvasSize.w, canvasSize.h, 120)
+  }, [raw, canvasSize])
 
   const layoutRef = useRef(layout)
   useEffect(() => {
@@ -151,16 +163,23 @@ export function GraphView({ focusPath }: GraphViewProps) {
       const b = currentLayout.nodes[e.target]
       if (!shownPaths.has(a.node.path) || !shownPaths.has(b.node.path)) continue
       ctx.strokeStyle = isDarkRef.current ? 'rgba(148,163,184,0.35)' : 'rgba(100,116,139,0.3)'
+      const mx = (a.x - cx + b.x - cx) / 2
+      const my = (a.y - cy + b.y - cy) / 2
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const cpx = mx - dy * 0.15
+      const cpy = my + dx * 0.15
       ctx.beginPath()
       ctx.moveTo(a.x - cx, a.y - cy)
-      ctx.lineTo(b.x - cx, b.y - cy)
+      ctx.quadraticCurveTo(cpx, cpy, b.x - cx, b.y - cy)
       ctx.stroke()
     }
 
     for (const n of visibleRef.current) {
       const i = nodeIndex.get(n.node.path)!
       const color = clusterColor(currentLayout.clusters.get(i) ?? 0, isDarkRef.current)
-      const size = n.node.links.length === 0 && n.node.tags.length === 0 ? 4 : 7
+      const linkCount = n.node.links.length
+      const size = Math.min(10, Math.max(3, 3 + linkCount * 1.2))
       const isFocus = focusRef.current === n.node.path
       ctx.beginPath()
       ctx.arc(n.x - cx, n.y - cy, isFocus ? size + 3 : size, 0, Math.PI * 2)
@@ -174,11 +193,39 @@ export function GraphView({ focusPath }: GraphViewProps) {
         ctx.stroke()
       }
       if (hoverRef.current === n.node.path) {
-        ctx.fillStyle = isDarkRef.current ? '#ffffff' : '#000000'
-        ctx.font = '11px system-ui, sans-serif'
-        ctx.textAlign = 'center'
         const label = n.node.title.length > 28 ? n.node.title.slice(0, 28) + '…' : n.node.title
-        ctx.fillText(label, n.x - cx, n.y - cy - size - 6)
+        ctx.font = '11px system-ui, sans-serif'
+        const tw = ctx.measureText(label).width
+        const px = 6
+        const py = 3
+        const lx = n.x - cx - tw / 2 - px
+        const ly = n.y - cy - size - 6 - 11 - py * 2
+        const bw = tw + px * 2
+        const bh = 11 + py * 2
+        const br = 4
+        ctx.fillStyle = isDarkRef.current ? 'rgba(24,24,27,0.92)' : 'rgba(255,255,255,0.92)'
+        ctx.beginPath()
+        ctx.moveTo(lx + br, ly)
+        ctx.lineTo(lx + bw - br, ly)
+        ctx.quadraticCurveTo(lx + bw, ly, lx + bw, ly + br)
+        ctx.lineTo(lx + bw, ly + bh - br)
+        ctx.quadraticCurveTo(lx + bw, ly + bh, lx + bw - br, ly + bh)
+        ctx.lineTo(lx + br, ly + bh)
+        ctx.quadraticCurveTo(lx, ly + bh, lx, ly + bh - br)
+        ctx.lineTo(lx, ly + br)
+        ctx.quadraticCurveTo(lx, ly, lx + br, ly)
+        ctx.closePath()
+        ctx.shadowColor = isDarkRef.current ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)'
+        ctx.shadowBlur = 6
+        ctx.shadowOffsetY = 2
+        ctx.fill()
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetY = 0
+        ctx.fillStyle = isDarkRef.current ? '#e4e4e7' : '#27272a'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(label, n.x - cx, ly + bh / 2)
       }
     }
     ctx.restore()
@@ -278,6 +325,37 @@ export function GraphView({ focusPath }: GraphViewProps) {
     }
   }, [layout, visible, openNote])
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === 'INPUT') return
+      if (e.key === 'r' || e.key === 'R') {
+        setZoom(1)
+        setPan({ x: 0, y: 0 })
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        if (!layout) return
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const rect = canvas.getBoundingClientRect()
+        const xs = layout.nodes.map((n) => n.x)
+        const ys = layout.nodes.map((n) => n.y)
+        const minX = Math.min(...xs)
+        const maxX = Math.max(...xs)
+        const minY = Math.min(...ys)
+        const maxY = Math.max(...ys)
+        const gw = maxX - minX + 80
+        const gh = maxY - minY + 80
+        const z = Math.min(rect.width / gw, rect.height / gh, 2)
+        const cx = (minX + maxX) / 2
+        const cy = (minY + maxY) / 2
+        setZoom(z)
+        setPan({ x: -cx * z, y: -cy * z })
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [layout])
+
   const focusTitle = focus
     ? raw.find((n) => n.path === focus)?.title
     : undefined
@@ -339,11 +417,29 @@ export function GraphView({ focusPath }: GraphViewProps) {
       </div>
       <div ref={containerRef} className="relative min-h-0 flex-1">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-[13px] text-zinc-500">
-            Building graph…
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[13px] text-zinc-500">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
+            <span>Building graph…</span>
+          </div>
+        )}
+        {!loading && raw.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[13px] text-zinc-400">
+            <svg className="h-10 w-10 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-13.35a4.5 4.5 0 00-6.364 0l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+            </svg>
+            <span>No notes yet. Create some notes to see the graph.</span>
           </div>
         )}
         <canvas ref={canvasRef} className="h-full w-full cursor-grab active:cursor-grabbing" />
+        {!loading && raw.length > 0 && (
+          <div
+            className={`absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[11px] ${
+              isDark ? 'bg-zinc-800/80 text-zinc-400' : 'bg-white/80 text-zinc-500'
+            }`}
+          >
+            {statsMemo.nodes} nodes · {statsMemo.edges} edges
+          </div>
+        )}
       </div>
     </div>
   )

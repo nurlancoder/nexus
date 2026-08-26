@@ -238,6 +238,23 @@ body {
   animation: nexus-spin 0.8s linear infinite;
 }
 
+/* ---- Toast ---- */
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.2s ease-out;
+}
+
 /* ---- Custom Scrollbars ---- */
 
 .scrollbar-dark::-webkit-scrollbar {
@@ -293,7 +310,8 @@ body {
   .nexus-slide-left,
   .nexus-slide-right,
   .nexus-scale-in,
-  .nexus-spin {
+  .nexus-spin,
+  .animate-slide-in-right {
     animation: none;
   }
   .transition-panel,

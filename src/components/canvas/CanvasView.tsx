@@ -31,6 +31,7 @@ export function CanvasView({ path }: CanvasViewProps) {
   const [connectFrom, setConnectFrom] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  const [shiftHeld, setShiftHeld] = useState(false)
 
   const viewport = data.viewport
   const dataRef = useRef(data)
@@ -156,6 +157,21 @@ export function CanvasView({ path }: CanvasViewProps) {
   )
 
   useEffect(() => {
+    const onDown = (e: KeyboardEvent) => { if (e.key === 'Shift') setShiftHeld(true) }
+    const onUp = (e: KeyboardEvent) => { if (e.key === 'Shift') setShiftHeld(false) }
+    window.addEventListener('keydown', onDown)
+    window.addEventListener('keyup', onUp)
+    return () => {
+      window.removeEventListener('keydown', onDown)
+      window.removeEventListener('keyup', onUp)
+    }
+  }, [])
+
+  const snapToGrid = useCallback((v: number, size = 20) => {
+    return shiftHeld ? Math.round(v / size) * size : v
+  }, [shiftHeld])
+
+  useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const drag = dragRef.current
       if (!drag) return
@@ -178,7 +194,7 @@ export function CanvasView({ path }: CanvasViewProps) {
         setData((d) => ({
           ...d,
           nodes: d.nodes.map((n) =>
-            n.id === id ? { ...n, x: nx, y: ny } : n,
+            n.id === id ? { ...n, x: snapToGrid(nx), y: snapToGrid(ny) } : n,
           ),
         }))
       } else {
@@ -190,7 +206,7 @@ export function CanvasView({ path }: CanvasViewProps) {
           return {
             ...d,
             groups: d.groups.map((g) =>
-              g.id === id ? { ...g, x: nx, y: ny } : g,
+              g.id === id ? { ...g, x: snapToGrid(nx), y: snapToGrid(ny) } : g,
             ),
             nodes: d.nodes.map((n) =>
               n.groupId === id ? { ...n, x: n.x + dxm, y: n.y + dym } : n,
@@ -227,7 +243,7 @@ export function CanvasView({ path }: CanvasViewProps) {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
-  }, [viewport, setViewport, setData, worldFromClient])
+  }, [viewport, setViewport, setData, worldFromClient, snapToGrid])
 
   const addNode = useCallback(
     (wx?: number, wy?: number) => {
@@ -353,6 +369,14 @@ export function CanvasView({ path }: CanvasViewProps) {
 
   const renderEdges = () => {
     const lines: React.ReactNode[] = []
+    const markerId = 'arrowhead'
+    lines.push(
+      <defs key="defs">
+        <marker id={markerId} markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill={isDark ? '#64748b' : '#a1a1aa'} />
+        </marker>
+      </defs>,
+    )
     for (const edge of data.edges) {
       const a = nodesById.get(edge.from)
       const b = nodesById.get(edge.to)
@@ -364,15 +388,19 @@ export function CanvasView({ path }: CanvasViewProps) {
       const selected = selection?.kind === 'edge' && selection.id === edge.id
       const midX = (x1 + x2) / 2
       const midY = (y1 + y2) / 2
+      const angle = Math.atan2(y2 - y1, x2 - x1)
+      const arrowX = x2 - Math.cos(angle) * 8
+      const arrowY = y2 - Math.sin(angle) * 8
       lines.push(
         <g key={edge.id} onClick={(e) => onEdgeClick(edge.id, e)}>
           <line
             x1={x1}
             y1={y1}
-            x2={x2}
-            y2={y2}
+            x2={arrowX}
+            y2={arrowY}
             stroke={selected ? '#f59e0b' : isDark ? '#64748b' : '#a1a1aa'}
             strokeWidth={selected ? 2.5 : 2}
+            markerEnd={`url(#${markerId})`}
           />
           <circle cx={midX} cy={midY} r={6} fill="transparent" />
         </g>,
@@ -402,7 +430,7 @@ export function CanvasView({ path }: CanvasViewProps) {
   return (
     <div className="flex h-full flex-col">
       <div
-        className={`flex h-11 shrink-0 items-center gap-2 border-b px-3 ${
+        className={`flex h-11 shrink-0 items-center gap-1.5 border-b px-3 ${
           isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'
         }`}
       >
@@ -416,21 +444,28 @@ export function CanvasView({ path }: CanvasViewProps) {
           </span>
         )}
         <div className="flex-1" />
-        <span className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${
+            isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-zinc-200 text-zinc-600'
+          }`}
+        >
           {Math.round(viewport.zoom * 100)}%
         </span>
-        <button onClick={() => addNode()} className={btn}>
+        <div className={`mx-1 h-4 w-px ${isDark ? 'bg-zinc-700' : 'bg-zinc-300'}`} />
+        <button onClick={() => addNode()} className={btn} aria-label="Add node">
           Add node
         </button>
-        <button onClick={() => addGroup()} className={btn}>
+        <button onClick={() => addGroup()} className={btn} aria-label="Add group">
           Add group
         </button>
+        <div className={`mx-1 h-4 w-px ${isDark ? 'bg-zinc-700' : 'bg-zinc-300'}`} />
         <button
           onClick={() => {
             setConnectMode((c) => !c)
             setConnectFrom(null)
           }}
           className={connectMode ? btnActive : btn}
+          aria-label="Connect nodes"
         >
           {connectMode
             ? connectFrom
@@ -442,12 +477,15 @@ export function CanvasView({ path }: CanvasViewProps) {
           onClick={deleteSelected}
           disabled={!selection}
           className={`${btn} disabled:cursor-not-allowed disabled:opacity-40`}
+          aria-label="Delete selected"
         >
           Delete
         </button>
+        <div className={`mx-1 h-4 w-px ${isDark ? 'bg-zinc-700' : 'bg-zinc-300'}`} />
         <button
           onClick={() => setViewport({ x: 0, y: 0, zoom: 1 })}
           className={btn}
+          aria-label="Reset view"
         >
           Reset
         </button>
@@ -463,6 +501,14 @@ export function CanvasView({ path }: CanvasViewProps) {
           addNode(p.x, p.y)
         }}
       >
+        {data.nodes.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[13px] text-zinc-400 pointer-events-none select-none">
+            <svg className="h-8 w-8 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>Double-click to add a node</span>
+          </div>
+        )}
         <div
           className="absolute left-0 top-0 origin-top-left"
           style={{
@@ -486,11 +532,11 @@ export function CanvasView({ path }: CanvasViewProps) {
                 className={`absolute rounded-lg border-2 ${
                   selected
                     ? isDark
-                      ? 'border-amber-400/80 bg-amber-400/5'
-                      : 'border-amber-500/80 bg-amber-100/20'
+                      ? 'border-amber-400/80 bg-gradient-to-br from-amber-400/10 to-amber-400/5'
+                      : 'border-amber-500/80 bg-gradient-to-br from-amber-100/40 to-amber-100/20'
                     : isDark
-                      ? 'border-zinc-600/60 bg-zinc-800/10'
-                      : 'border-zinc-300 bg-zinc-100/20'
+                      ? 'border-zinc-600/60 bg-gradient-to-br from-zinc-800/15 to-zinc-800/5'
+                      : 'border-zinc-300 bg-gradient-to-br from-zinc-100/40 to-zinc-100/10'
                 }`}
                 style={{ left: g.x, top: g.y, width: g.w, height: g.h }}
               >
@@ -508,6 +554,7 @@ export function CanvasView({ path }: CanvasViewProps) {
           {data.nodes.map((n) => {
             const selected = selection?.kind === 'node' && selection.id === n.id
             const inGroup = data.groups.some((g) => g.id === n.groupId)
+            const isConnectSource = connectMode && connectFrom === n.id
             return (
               <div
                 key={n.id}
@@ -518,18 +565,24 @@ export function CanvasView({ path }: CanvasViewProps) {
                   setEditingId(n.id)
                   setDraft(n.text)
                 }}
-                className={`absolute flex items-center justify-center rounded-md border px-3 py-2 text-center text-[12px] shadow-sm ${
-                  selected
+                className={`absolute flex items-center justify-center rounded-md border px-3 py-2 text-center text-[12px] shadow-sm transition-shadow ${
+                  isConnectSource
+                    ? 'animate-pulse border-blue-400 shadow-md shadow-blue-400/20'
+                    : ''
+                } ${
+                  !isConnectSource && selected
                     ? isDark
-                      ? 'border-amber-400 bg-zinc-800'
-                      : 'border-amber-500 bg-white'
-                    : inGroup
+                      ? 'border-amber-400 shadow-md shadow-amber-400/10 bg-zinc-800'
+                      : 'border-amber-500 shadow-md shadow-amber-500/10 bg-white'
+                    : !isConnectSource && inGroup
                       ? isDark
-                        ? 'border-zinc-600 bg-zinc-800/80'
-                        : 'border-zinc-300 bg-zinc-50'
-                      : isDark
-                        ? 'border-zinc-700 bg-zinc-800'
-                        : 'border-zinc-200 bg-white'
+                        ? 'border-zinc-600 shadow-sm bg-zinc-800/80'
+                        : 'border-zinc-300 shadow-sm bg-zinc-50'
+                      : !isConnectSource
+                        ? isDark
+                          ? 'border-zinc-700 shadow-sm bg-zinc-800'
+                          : 'border-zinc-200 shadow-sm bg-white'
+                        : ''
                 }`}
                 style={{ left: n.x, top: n.y, width: n.w, height: n.h }}
               >

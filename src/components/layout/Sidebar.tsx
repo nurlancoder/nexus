@@ -26,7 +26,7 @@ export function Sidebar() {
   return (
     <aside
       style={{ width: sidebarWidth }}
-      className={`flex shrink-0 flex-col border-r ${
+      className={`flex shrink-0 flex-col border-r transition-panel ${
         isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'
       }`}
     >

@@ -251,7 +251,7 @@ export function Inspector() {
   return (
     <aside
       style={{ width: inspectorWidth }}
-      className={`flex shrink-0 flex-col border-l ${
+      className={`flex shrink-0 flex-col border-l transition-panel ${
         isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'
       }`}
     >

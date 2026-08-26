@@ -1,7 +1,9 @@
 import { invoke } from '@/lib/tauri'
+import { isTauri } from '@/lib/tauriEnv'
+import { browserWorkspaceApi, throwBrowserError } from '@/lib/browserMock'
 import type { Workspace, FileNode } from '@/types'
 
-export const workspaceApi = {
+const tauriWorkspaceApi = {
   create: (name: string, parentPath: string) =>
     invoke<Workspace>('workspace_create', { name, parentPath }),
   open: (path: string) => invoke<Workspace>('workspace_open', { path }),
@@ -9,18 +11,27 @@ export const workspaceApi = {
   tree: (path: string) => invoke<FileNode[]>('workspace_tree', { path }),
 }
 
+export const workspaceApi = isTauri()
+  ? tauriWorkspaceApi
+  : browserWorkspaceApi
+
+const guardedInvoke = <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  if (!isTauri()) throwBrowserError(command)
+  return invoke<T>(command, args)
+}
+
 export const noteApi = {
-  read: (path: string) => invoke<string>('note_read', { path }),
+  read: (path: string) => guardedInvoke<string>('note_read', { path }),
   write: (path: string, content: string) =>
-    invoke<null>('note_write', { path, content }),
+    guardedInvoke<null>('note_write', { path, content }),
   create: (parent: string, title: string) =>
-    invoke<string>('note_create', { parent, title }),
+    guardedInvoke<string>('note_create', { parent, title }),
   rename: (path: string, newName: string) =>
-    invoke<string>('note_rename', { path, newName }),
-  remove: (path: string) => invoke<null>('note_delete', { path }),
+    guardedInvoke<string>('note_rename', { path, newName }),
+  remove: (path: string) => guardedInvoke<null>('note_delete', { path }),
   move: (path: string, targetDir: string) =>
-    invoke<string>('note_move', { path, targetDir }),
-  duplicate: (path: string) => invoke<string>('note_duplicate', { path }),
+    guardedInvoke<string>('note_move', { path, targetDir }),
+  duplicate: (path: string) => guardedInvoke<string>('note_duplicate', { path }),
 }
 
 export interface SearchResult {
@@ -31,9 +42,9 @@ export interface SearchResult {
 
 export const searchApi = {
   query: (workspacePath: string, query: string, limit?: number) =>
-    invoke<SearchResult[]>('search_query', { workspacePath, query, limit }),
+    guardedInvoke<SearchResult[]>('search_query', { workspacePath, query, limit }),
   reindex: (workspacePath: string) =>
-    invoke<number>('search_reindex', { workspacePath }),
+    guardedInvoke<number>('search_reindex', { workspacePath }),
 }
 
 export interface LinkHit {
@@ -58,17 +69,17 @@ export interface GraphNode {
 
 export const linkingApi = {
   resolve: (workspacePath: string, targetPath: string) =>
-    invoke<LinkResolution>('linking_resolve', { workspacePath, targetPath }),
+    guardedInvoke<LinkResolution>('linking_resolve', { workspacePath, targetPath }),
   graph: (workspacePath: string) =>
-    invoke<GraphNode[]>('linking_graph', { workspacePath }),
+    guardedInvoke<GraphNode[]>('linking_graph', { workspacePath }),
 }
 
 export const canvasApi = {
   create: (parent: string, title: string) =>
-    invoke<string>('canvas_create', { parent, title }),
+    guardedInvoke<string>('canvas_create', { parent, title }),
   save: (path: string, content: string) =>
-    invoke<null>('canvas_save', { path, content }),
-  load: (path: string) => invoke<string>('canvas_load', { path }),
+    guardedInvoke<null>('canvas_save', { path, content }),
+  load: (path: string) => guardedInvoke<string>('canvas_load', { path }),
 }
 
 export interface DatabaseDefinition {
@@ -94,13 +105,13 @@ export interface DatabaseRow {
 
 export const databaseApi = {
   list: (workspacePath: string) =>
-    invoke<DatabaseMeta[]>('database_list', { workspacePath }),
+    guardedInvoke<DatabaseMeta[]>('database_list', { workspacePath }),
   save: (workspacePath: string, name: string, definition: DatabaseDefinition) =>
-    invoke<null>('database_save', { workspacePath, name, definition }),
+    guardedInvoke<null>('database_save', { workspacePath, name, definition }),
   delete: (workspacePath: string, name: string) =>
-    invoke<null>('database_delete', { workspacePath, name }),
+    guardedInvoke<null>('database_delete', { workspacePath, name }),
   rows: (workspacePath: string, sourceFolders: string[]) =>
-    invoke<DatabaseRow[]>('database_rows', { workspacePath, sourceFolders }),
+    guardedInvoke<DatabaseRow[]>('database_rows', { workspacePath, sourceFolders }),
 }
 
 export interface TaskItem {
@@ -117,9 +128,9 @@ export interface TaskItem {
 
 export const taskApi = {
   scan: (workspacePath: string) =>
-    invoke<TaskItem[]>('task_scan', { workspacePath }),
+    guardedInvoke<TaskItem[]>('task_scan', { workspacePath }),
   toggle: (path: string, line: number, done: boolean) =>
-    invoke<null>('task_toggle', { path, line, done }),
+    guardedInvoke<null>('task_toggle', { path, line, done }),
 }
 
 export interface ProjectSummary {
@@ -153,9 +164,9 @@ export interface ProjectDetail {
 
 export const projectApi = {
   list: (workspacePath: string) =>
-    invoke<ProjectSummary[]>('project_list', { workspacePath }),
+    guardedInvoke<ProjectSummary[]>('project_list', { workspacePath }),
   detail: (workspacePath: string, name: string) =>
-    invoke<ProjectDetail>('project_detail_cmd', { workspacePath, name }),
+    guardedInvoke<ProjectDetail>('project_detail_cmd', { workspacePath, name }),
 }
 
 export interface CalendarEvent {
@@ -172,9 +183,9 @@ export interface DailyNoteInfo {
 
 export const calendarApi = {
   events: (workspacePath: string, year: number, month: number) =>
-    invoke<CalendarEvent[]>('calendar_events', { workspacePath, year, month }),
+    guardedInvoke<CalendarEvent[]>('calendar_events', { workspacePath, year, month }),
   openDaily: (workspacePath: string, date: string) =>
-    invoke<DailyNoteInfo>('daily_note_open', { workspacePath, date }),
+    guardedInvoke<DailyNoteInfo>('daily_note_open', { workspacePath, date }),
 }
 
 export interface AttachmentInfo {
@@ -186,11 +197,11 @@ export interface AttachmentInfo {
 
 export const attachmentApi = {
   save: (workspacePath: string, name: string, dataBase64: string) =>
-    invoke<AttachmentInfo>('attachment_save', { workspacePath, name, dataBase64 }),
+    guardedInvoke<AttachmentInfo>('attachment_save', { workspacePath, name, dataBase64 }),
   list: (workspacePath: string) =>
-    invoke<AttachmentInfo[]>('attachment_list', { workspacePath }),
-  read: (path: string) => invoke<string>('attachment_read', { path }),
-  delete: (path: string) => invoke<null>('attachment_delete', { path }),
+    guardedInvoke<AttachmentInfo[]>('attachment_list', { workspacePath }),
+  read: (path: string) => guardedInvoke<string>('attachment_read', { path }),
+  delete: (path: string) => guardedInvoke<null>('attachment_delete', { path }),
 }
 
 export interface TemplateInfo {
@@ -200,15 +211,15 @@ export interface TemplateInfo {
 
 export const templateApi = {
   list: (workspacePath: string) =>
-    invoke<TemplateInfo[]>('template_list', { workspacePath }),
-  read: (path: string) => invoke<string>('template_read', { path }),
+    guardedInvoke<TemplateInfo[]>('template_list', { workspacePath }),
+  read: (path: string) => guardedInvoke<string>('template_read', { path }),
   createNote: (
     workspacePath: string,
     templateName: string,
     title: string,
     parentFolder?: string | null,
   ) =>
-    invoke<string>('template_create_note', {
+    guardedInvoke<string>('template_create_note', {
       workspacePath,
       templateName,
       title,
@@ -222,12 +233,12 @@ export interface VersionInfo {
 }
 
 export const historyApi = {
-  list: (path: string) => invoke<VersionInfo[]>('history_list', { path }),
-  get: (path: string, id: number) => invoke<string>('history_get', { path, id }),
+  list: (path: string) => guardedInvoke<VersionInfo[]>('history_list', { path }),
+  get: (path: string, id: number) => guardedInvoke<string>('history_get', { path, id }),
   restore: (path: string, id: number) =>
-    invoke<null>('history_restore', { path, id }),
+    guardedInvoke<null>('history_restore', { path, id }),
   prune: (path: string, keep?: number) =>
-    invoke<number>('history_prune', { path, keep: keep ?? null }),
+    guardedInvoke<number>('history_prune', { path, keep: keep ?? null }),
 }
 
 export interface OrphanInfo {
@@ -272,7 +283,7 @@ export interface InsightsReport {
 
 export const insightsApi = {
   report: (workspacePath: string) =>
-    invoke<InsightsReport>('insights_report', { workspacePath }),
+    guardedInvoke<InsightsReport>('insights_report', { workspacePath }),
 }
 
 export interface PluginInfo {
@@ -282,7 +293,7 @@ export interface PluginInfo {
 
 export const pluginApi = {
   list: (workspacePath: string) =>
-    invoke<PluginInfo[]>('plugin_list', { workspacePath }),
+    guardedInvoke<PluginInfo[]>('plugin_list', { workspacePath }),
   read: (workspacePath: string, name: string) =>
-    invoke<string>('plugin_read', { workspacePath, name }),
+    guardedInvoke<string>('plugin_read', { workspacePath, name }),
 }

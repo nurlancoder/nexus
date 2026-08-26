@@ -9,7 +9,9 @@ import { Inspector } from '@/components/layout/Inspector'
 import { StatusBar } from '@/components/layout/StatusBar'
 import { CommandPalette } from '@/components/command/CommandPalette'
 import { Resizer } from '@/components/ui/Resizer'
+import { ToastProvider } from '@/components/ui/Toast'
 import { WelcomeScreen } from '@/features/workspace/WelcomeScreen'
+import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { registerCoreCommands } from '@/core/commands/core'
 import { matchesShortcut } from '@/core/shortcuts/model'
 import { createNoteInInbox } from '@/features/notes/actions'
@@ -42,11 +44,13 @@ export default function App() {
 
   const isMac =
     typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform)
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const activeTab = useTabStore
         .getState()
         .tabs.find((t) => t.id === useTabStore.getState().activeTabId)
+
       if (
         matchesShortcut(e, { key: 's', mod: true }, isMac) &&
         activeTab?.kind === 'note'
@@ -58,6 +62,22 @@ export default function App() {
       if (matchesShortcut(e, { key: 'n', mod: true }, isMac)) {
         e.preventDefault()
         void createNoteInInbox()
+        return
+      }
+      if (matchesShortcut(e, { key: '\\', mod: true }, isMac)) {
+        e.preventDefault()
+        useWorkspaceStore.getState().toggleSidebar()
+        return
+      }
+      if (matchesShortcut(e, { key: '\\', mod: true, shift: true }, isMac)) {
+        e.preventDefault()
+        useWorkspaceStore.getState().toggleInspector()
+        return
+      }
+      if (matchesShortcut(e, { key: 'f', mod: true, shift: true }, isMac)) {
+        e.preventDefault()
+        useWorkspaceStore.getState().toggleFocusMode()
+        return
       }
     }
     window.addEventListener('keydown', onKey)
@@ -66,58 +86,64 @@ export default function App() {
 
   if (!workspace || welcomeVisible) {
     return (
-      <div className={`h-full ${isDark ? 'dark' : ''}`}>
-        <WelcomeScreen />
-        <CommandPalette />
-      </div>
+      <ToastProvider>
+        <div className={`h-full ${isDark ? 'dark' : ''}`}>
+          <WelcomeScreen />
+          <CommandPalette />
+        </div>
+      </ToastProvider>
     )
   }
 
   return (
-    <div
-      className={`flex h-full flex-col ${isDark ? 'dark' : ''} ${
-        isDark ? 'bg-zinc-900 text-zinc-100' : 'bg-zinc-50 text-zinc-900'
-      }`}
-    >
-      <TitleBar />
-      <div className="flex min-h-0 flex-1">
-        {sidebarVisible && !focusMode && (
-          <>
-            <Sidebar />
-            <Resizer
-              direction="vertical"
-              value={sidebarWidth}
-              onResize={setSidebarWidth}
-            />
-          </>
+    <ToastProvider>
+      <div
+        className={`flex h-full flex-col ${isDark ? 'dark' : ''} ${
+          isDark ? 'bg-zinc-900 text-zinc-100' : 'bg-zinc-50 text-zinc-900'
+        }`}
+      >
+        <TitleBar />
+        <div className="flex min-h-0 flex-1">
+          {sidebarVisible && !focusMode && (
+            <>
+              <Sidebar />
+              <Resizer
+                direction="vertical"
+                value={sidebarWidth}
+                onResize={setSidebarWidth}
+              />
+            </>
+          )}
+          <ErrorBoundary label="Main area">
+            <MainArea />
+          </ErrorBoundary>
+          {inspectorVisible && !focusMode && (
+            <>
+              <Resizer
+                direction="vertical"
+                value={inspectorWidth}
+                onResize={setInspectorWidth}
+                position="left"
+              />
+              <Inspector />
+            </>
+          )}
+        </div>
+        {!focusMode && <StatusBar />}
+        {focusMode && (
+          <button
+            onClick={() => useWorkspaceStore.getState().setFocusMode(false)}
+            className={`fixed bottom-3 left-1/2 z-40 -translate-x-1/2 rounded-full px-3 py-1 text-[11px] shadow-lg transition-opacity hover:opacity-100 ${
+              isDark
+                ? 'bg-zinc-800 text-zinc-400 opacity-60'
+                : 'bg-white text-zinc-500 opacity-60 shadow-zinc-300'
+            }`}
+          >
+            Focus mode · Esc to exit
+          </button>
         )}
-        <MainArea />
-        {inspectorVisible && !focusMode && (
-          <>
-            <Resizer
-              direction="vertical"
-              value={inspectorWidth}
-              onResize={setInspectorWidth}
-              position="left"
-            />
-            <Inspector />
-          </>
-        )}
+        <CommandPalette />
       </div>
-      {!focusMode && <StatusBar />}
-      {focusMode && (
-        <button
-          onClick={() => useWorkspaceStore.getState().setFocusMode(false)}
-          className={`fixed bottom-3 left-1/2 z-40 -translate-x-1/2 rounded-full px-3 py-1 text-[11px] shadow-lg transition-opacity hover:opacity-100 ${
-            isDark
-              ? 'bg-zinc-800 text-zinc-400 opacity-60'
-              : 'bg-white text-zinc-500 opacity-60 shadow-zinc-300'
-          }`}
-        >
-          Focus mode · Esc to exit
-        </button>
-      )}
-      <CommandPalette />
-    </div>
+    </ToastProvider>
   )
 }
