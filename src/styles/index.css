@@ -1,0 +1,191 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+  overflow: hidden;
+}
+
+/* ---- Tiptap editor ---- */
+
+.tiptap {
+  outline: none;
+  padding: 1.25rem 1.75rem 3rem;
+  min-height: 100%;
+  font-size: 14px;
+  line-height: 1.7;
+  color: inherit;
+}
+
+.tiptap p {
+  margin: 0.4em 0;
+}
+
+.tiptap h1,
+.tiptap h2,
+.tiptap h3 {
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 1em 0 0.4em;
+}
+
+.tiptap h1 {
+  font-size: 1.7em;
+}
+
+.tiptap h2 {
+  font-size: 1.4em;
+}
+
+.tiptap h3 {
+  font-size: 1.15em;
+}
+
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.4em;
+  margin: 0.4em 0;
+}
+
+.tiptap ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0.2em;
+}
+
+.tiptap ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.tiptap ul[data-type='taskList'] input[type='checkbox'] {
+  margin-top: 0.35em;
+  accent-color: #3b82f6;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid rgb(127 127 127 / 0.35);
+  margin: 0.6em 0;
+  padding: 0.1em 0 0.1em 1em;
+  opacity: 0.85;
+}
+
+.tiptap code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  background: rgb(127 127 127 / 0.15);
+}
+
+.tiptap pre {
+  background: rgb(127 127 127 / 0.1);
+  border-radius: 8px;
+  padding: 0.85em 1em;
+  overflow-x: auto;
+  margin: 0.6em 0;
+}
+
+.tiptap pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.9em;
+}
+
+.tiptap table {
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  width: 100%;
+  table-layout: fixed;
+  overflow: hidden;
+}
+
+.tiptap th,
+.tiptap td {
+  border: 1px solid rgb(127 127 127 / 0.3);
+  padding: 0.4em 0.6em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tiptap th {
+  background: rgb(127 127 127 / 0.1);
+  font-weight: 600;
+}
+
+.tiptap .selectedCell:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgb(59 130 246 / 0.1);
+  pointer-events: none;
+}
+
+.tiptap hr {
+  border: none;
+  border-top: 1px solid rgb(127 127 127 / 0.3);
+  margin: 1.2em 0;
+}
+
+.tiptap a {
+  color: #3b82f6;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.tiptap .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: rgb(127 127 127 / 0.5);
+}
+/* ---- Motion ---- */
+
+@keyframes nexus-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.nexus-fade-in {
+  animation: nexus-fade-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-fade-in {
+    animation: none;
+  }
+}
