@@ -15,6 +15,9 @@ dist-ssr
 # Updater signing keys (never commit the private key)
 src-tauri/keys/*.key
 
+# Test artifact workspace directories (created by workspace tests)
+src-tauri/UNKNOWN/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
