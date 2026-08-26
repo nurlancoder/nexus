@@ -62,13 +62,14 @@ keypair and ship an installer that carries the new pubkey.
 
 ### Endpoint & publishing
 
-`plugins.updater.endpoints` currently points at a placeholder
-(`https://updates.nexus.local/...`). Replace it with your static file host.
-Supported template variables: `{{target}}` (e.g. `linux`), `{{arch}}`,
-`{{current_version}}`.
+NEXUS uses **GitHub Releases** as the update source — no external server required.
 
-For each release, upload the bundles **and** their `.sig` files, then publish a
-manifest like:
+The updater endpoint in `tauri.conf.json` points to:
+```
+https://github.com/nurlancoder/nexus/releases/latest/download/{{target}}-{{arch}}.json
+```
+
+For each release, upload the bundles, their `.sig` files, and a per-platform JSON manifest:
 
 ```json
 {
@@ -76,16 +77,15 @@ manifest like:
   "notes": "Release notes here",
   "pub_date": "2026-08-23T12:00:00Z",
   "platforms": {
-    "linux-x86_64": { "signature": "<contents of .sig>", "url": "https://.../NEXUS_0.2.0_amd64.AppImage" },
-    "windows-x86_64": { "signature": "<contents of .sig>", "url": "https://.../NEXUS_0.2.0_x64-setup.exe" },
-    "darwin-aarch64": { "signature": "<contents of .sig>", "url": "https://.../NEXUS_0.2.0_aarch64.app.tar.gz" }
+    "linux-x86_64": { "signature": "<contents of .sig>", "url": "https://github.com/nurlancoder/nexus/releases/download/v0.2.0/NEXUS_0.2.0_amd64.AppImage" },
+    "windows-x86_64": { "signature": "<contents of .sig>", "url": "https://github.com/nurlancoder/nexus/releases/download/v0.2.0/NEXUS_0.2.0_x64-setup.exe" },
+    "darwin-aarch64": { "signature": "<contents of .sig>", "url": "https://github.com/nurlancoder/nexus/releases/download/v0.2.0/NEXUS_0.2.0_aarch64.app.tar.gz" }
   }
 }
 ```
 
-Point the endpoint at that file (e.g. `https://your.host/{{target}}-{{arch}}.json`).
-If the endpoint is unreachable or unset, the in-app check reports a graceful error;
-the rest of the app is unaffected.
+If the endpoint is unreachable (no internet, no releases yet), the in-app check
+reports a graceful error; the rest of the app is unaffected.
 
 ## Code signing (OS-level)
 
