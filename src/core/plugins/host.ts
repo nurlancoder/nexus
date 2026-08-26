@@ -142,13 +142,13 @@ async function handleWorkerCall(
     try {
       worker.postMessage({ type: 'response', id: msg.id, result })
     } catch (_) {
-      // Worker terminated before response could be delivered — safe to discard
+      if (import.meta.env.DEV) console.debug(`[plugin] response for method=${msg.method} discarded (worker terminated)`)
     }
   } catch (err) {
     try {
       worker.postMessage({ type: 'response', id: msg.id, error: String(err) })
     } catch (_) {
-      // Worker terminated before error response could be delivered — safe to discard
+      if (import.meta.env.DEV) console.debug(`[plugin] error-response for method=${msg.method} discarded (worker terminated)`)
     }
   }
 }
