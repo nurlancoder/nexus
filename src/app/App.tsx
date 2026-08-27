@@ -12,6 +12,7 @@ import { Resizer } from '@/components/ui/Resizer'
 import { ToastProvider } from '@/components/ui/Toast'
 import { ShortcutsHelp } from '@/components/ui/ShortcutsHelp'
 import { useShortcutsStore } from '@/stores/shortcutsStore'
+import { useLinkStore } from '@/stores/linkStore'
 import { WelcomeScreen } from '@/features/workspace/WelcomeScreen'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { registerCoreCommands } from '@/core/commands/core'
@@ -45,6 +46,8 @@ export default function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [focusMode])
+
+  useEffect(() => useLinkStore.getState().watch(), [])
 
   const isMac =
     typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform)

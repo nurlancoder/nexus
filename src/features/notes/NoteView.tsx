@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNoteStore } from '@/stores/noteStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
+import { useLinkStore } from '@/stores/linkStore'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
 import { parseFrontmatter } from '@/core/parser/markdown'
 import { basename, dirname } from '@/lib/paths'
@@ -19,6 +20,8 @@ export function NoteView({ path }: NoteViewProps) {
   const theme = useWorkspaceStore((s) => s.theme)
   const isDark = theme === 'dark'
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  const resolution = useLinkStore((s) => s.resolutions[path])
+  const backlinkCount = resolution?.backlinks.length ?? 0
 
   const tags = useMemo(() => {
     if (!doc || doc.loading) return []
@@ -35,6 +38,7 @@ export function NoteView({ path }: NoteViewProps) {
 
   useEffect(() => {
     void load(path)
+    void useLinkStore.getState().resolve(path)
   }, [path, load])
 
   const doSave = useCallback(async () => {
@@ -102,6 +106,18 @@ export function NoteView({ path }: NoteViewProps) {
               </span>
             ))}
           </div>
+        )}
+        {backlinkCount > 0 && (
+          <span
+            title={`${backlinkCount} backlink${backlinkCount === 1 ? '' : 's'}`}
+            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] leading-none ${
+              isDark
+                ? 'bg-blue-500/15 text-blue-400'
+                : 'bg-blue-100 text-blue-700'
+            }`}
+          >
+            {backlinkCount} backlink{backlinkCount === 1 ? '' : 's'}
+          </span>
         )}
         <div className="flex-1" />
         <span

@@ -290,4 +290,56 @@ mod tests {
     assert!(s.starts_with("word"));
     assert!(s.ends_with('…'));
   }
+
+  #[test]
+  fn resolve_links_reports_backlinks_for_link_graph() {
+    let app = crate::test_helpers::mock_app();
+    let dir = std::env::temp_dir().join(format!("nexus_test_backlinks_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
+
+    let a = dir.join("A.md");
+    let b = dir.join("B.md");
+    let c = dir.join("C.md");
+    std::fs::write(&a, "# A\n\nReferences [[B]] here.").unwrap();
+    std::fs::write(&b, "# B\n\nBody of B.").unwrap();
+    std::fs::write(&c, "# C\n\nSee Also [[B]] for details.").unwrap();
+
+    {
+      let db = app.state::<crate::db::Database>();
+      let conn = db.conn();
+      let ws_id: i64 = conn
+        .query_row(
+          "SELECT id FROM workspaces WHERE path = ?1",
+          rusqlite::params![dir.to_string_lossy()],
+          |r| r.get(0),
+        )
+        .unwrap();
+      for (path, title) in [
+        (&a, "A"),
+        (&b, "B"),
+        (&c, "C"),
+      ] {
+        conn.execute(
+          "INSERT INTO files (workspace_id, path, title, type) VALUES (?1, ?2, ?3, 'note')",
+          rusqlite::params![ws_id, path.to_string_lossy(), title],
+        )
+        .unwrap();
+      }
+    }
+
+    let res = resolve_links(&app, &dir.to_string_lossy(), &b.to_string_lossy()).unwrap();
+
+    let returned: Vec<&str> = res.backlinks.iter().map(|h| h.path.as_str()).collect();
+    assert!(returned.contains(&a.to_string_lossy().as_ref()), "A should backlink B");
+    assert!(returned.contains(&c.to_string_lossy().as_ref()), "C should backlink B");
+    assert!(!returned.contains(&b.to_string_lossy().as_ref()), "B must not self-link");
+
+    for hit in &res.backlinks {
+      assert!(!hit.snippet.is_empty(), "each backlink should carry a context snippet");
+      assert!(hit.via_link);
+    }
+
+    std::fs::remove_dir_all(&dir).unwrap();
+  }
 }
