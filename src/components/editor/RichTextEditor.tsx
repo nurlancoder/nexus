@@ -1,10 +1,16 @@
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createExtensions } from './extensions'
 import { EditorToolbar } from './EditorToolbar'
 import { SlashMenu } from './SlashMenu'
 import { LinkMenu } from './LinkMenu'
 import { unescapeWikiLinks } from '@/core/parser/markdown'
+
+function countWords(text: string): number {
+  const trimmed = text.trim()
+  if (!trimmed) return 0
+  return trimmed.split(/\s+/).length
+}
 
 interface RichTextEditorProps {
   initialContent: string
@@ -15,6 +21,7 @@ interface RichTextEditorProps {
 export function RichTextEditor({ initialContent, onChange, readOnly = false }: RichTextEditorProps) {
   const onChangeRef = useRef(onChange)
   const [isFocused, setIsFocused] = useState(false)
+  const [wordCount, setWordCount] = useState(0)
 
   useEffect(() => {
     onChangeRef.current = onChange
@@ -28,18 +35,16 @@ export function RichTextEditor({ initialContent, onChange, readOnly = false }: R
     editorProps: {
       attributes: { class: 'tiptap' },
     },
-    onUpdate: ({ editor }) =>
-      onChangeRef.current(unescapeWikiLinks(editor.getMarkdown())),
+    onUpdate: ({ editor }) => {
+      onChangeRef.current(unescapeWikiLinks(editor.getMarkdown()))
+      setWordCount(countWords(editor.getText()))
+    },
+    onCreate: ({ editor }) => {
+      setWordCount(countWords(editor.getText()))
+    },
     onFocus: () => setIsFocused(true),
     onBlur: () => setIsFocused(false),
   })
-
-  const wordCount = useMemo(() => {
-    if (!editor) return 0
-    const text = editor.getText().trim()
-    if (!text) return 0
-    return text.split(/\s+/).length
-  }, [editor])
 
   return (
     <div className="relative flex h-full flex-col">
