@@ -255,8 +255,6 @@ export const historyApi = {
   get: (path: string, id: number) => guardedInvoke<string>('history_get', { path, id }),
   restore: (path: string, id: number) =>
     guardedInvoke<null>('history_restore', { path, id }),
-  prune: (path: string, keep?: number) =>
-    guardedInvoke<number>('history_prune', { path, keep: keep ?? null }),
 }
 
 export interface OrphanInfo {

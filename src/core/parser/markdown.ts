@@ -203,7 +203,3 @@ export function parseMarkdown(content: string): ParsedNote {
     wordCount: body.split(/\s+/).filter(Boolean).length,
   }
 }
-
-export function extractTags(content: string): string[] {
-  return parseMarkdown(content).tags
-}

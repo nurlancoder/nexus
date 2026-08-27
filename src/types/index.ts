@@ -1,11 +1,3 @@
-export interface FileInfo {
-  path: string
-  title: string
-  type: string
-  size: number
-  modifiedAt: string
-}
-
 export interface Workspace {
   id: number
   name: string
@@ -19,10 +11,4 @@ export interface FileNode {
   path: string
   isDir: boolean
   children: FileNode[]
-}
-
-export interface DbResult<T> {
-  ok: boolean
-  data?: T
-  error?: string
 }
