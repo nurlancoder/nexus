@@ -102,6 +102,27 @@ pub fn read_plugin(workspace_path: &str, name: &str) -> Result<String, String> {
   std::fs::read_to_string(&path).map_err(|e| e.to_string())
 }
 
+/// Installs (writes) a plugin `.js` source into the vault's plugins folder.
+pub fn install_plugin(workspace_path: &str, name: &str, source: &str) -> Result<(), String> {
+  let name = sanitize_name(name)?;
+  if !name.to_lowercase().ends_with(".js") {
+    return Err("Plugin name must end in .js".into());
+  }
+  let dir = ensure_plugins_dir(workspace_path)?;
+  let path = dir.join(&name);
+  std::fs::write(&path, source).map_err(|e| format!("Failed to write plugin: {e}"))
+}
+
+/// Removes an installed plugin `.js` file from the vault's plugins folder.
+pub fn uninstall_plugin(workspace_path: &str, name: &str) -> Result<(), String> {
+  let name = sanitize_name(name)?;
+  let path = plugins_root(workspace_path).join(&name);
+  if !path.is_file() {
+    return Err(format!("Plugin not found: {name}"));
+  }
+  std::fs::remove_file(&path).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn plugin_list<R: tauri::Runtime>(
   app: tauri::AppHandle<R>,
@@ -127,6 +148,35 @@ pub fn plugin_read<R: tauri::Runtime>(
     crate::search::find_workspace_id_for_path(&conn, &workspace_path)?;
   }
   read_plugin(&workspace_path, &name)
+}
+
+#[tauri::command]
+pub fn plugin_install<R: tauri::Runtime>(
+  app: tauri::AppHandle<R>,
+  workspace_path: String,
+  name: String,
+  source: String,
+) -> Result<(), String> {
+  {
+    let db = app.state::<Database>();
+    let conn = db.conn();
+    crate::search::find_workspace_id_for_path(&conn, &workspace_path)?;
+  }
+  install_plugin(&workspace_path, &name, &source)
+}
+
+#[tauri::command]
+pub fn plugin_uninstall<R: tauri::Runtime>(
+  app: tauri::AppHandle<R>,
+  workspace_path: String,
+  name: String,
+) -> Result<(), String> {
+  {
+    let db = app.state::<Database>();
+    let conn = db.conn();
+    crate::search::find_workspace_id_for_path(&conn, &workspace_path)?;
+  }
+  uninstall_plugin(&workspace_path, &name)
 }
 
 #[cfg(test)]
@@ -226,6 +276,34 @@ mod tests {
     assert!(read_plugin(&ws, "").is_err());
     assert!(read_plugin(&ws, "sub/x.js").is_err());
     assert!(read_plugin(&ws, "missing.js").is_err());
+
+    std::fs::remove_dir_all(&dir).unwrap();
+  }
+
+  #[test]
+  fn installs_and_uninstalls_plugins_with_validation() {
+    let dir = std::env::temp_dir().join(format!("nexus_plugins_install_{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let ws = dir.to_string_lossy().to_string();
+
+    install_plugin(&ws, "mkt.js", "nx.log('installed')").unwrap();
+    assert_eq!(
+      std::fs::read_to_string(dir.join("plugins/mkt.js")).unwrap(),
+      "nx.log('installed')"
+    );
+    assert_eq!(read_plugin(&ws, "mkt.js").unwrap(), "nx.log('installed')");
+
+    // rejects names that are not .js or that escape the plugins dir
+    assert!(install_plugin(&ws, "mkt", "x").is_err());
+    assert!(install_plugin(&ws, "../evil.js", "x").is_err());
+    assert!(install_plugin(&ws, "sub/mkt.js", "x").is_err());
+    assert!(install_plugin(&ws, "", "x").is_err());
+
+    // uninstall removes the file; uninstalling a missing plugin errors
+    uninstall_plugin(&ws, "mkt.js").unwrap();
+    assert!(!dir.join("plugins/mkt.js").exists());
+    assert!(uninstall_plugin(&ws, "mkt.js").is_err());
 
     std::fs::remove_dir_all(&dir).unwrap();
   }

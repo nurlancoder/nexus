@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { usePluginStore } from '@/stores/pluginStore'
 import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
+import {
+  MARKETPLACE_PLUGINS,
+  catalogFileName,
+  isCatalogInstalled,
+} from '@/core/plugins/catalog'
 
 const API_DOCS = [
   'nx.registerCommand({ id, title, run }) — command palette entry',
@@ -87,11 +92,87 @@ function PluginCard({ s, isDark }: { s: { name: string; enabled: boolean; error?
   )
 }
 
+function MarketplaceCard({
+  p,
+  isDark,
+  installed,
+  busy,
+  onAction,
+}: {
+  p: (typeof MARKETPLACE_PLUGINS)[number]
+  isDark: boolean
+  installed: boolean
+  busy: boolean
+  onAction: () => void
+}) {
+  return (
+    <div
+      className={`flex flex-col rounded-lg border px-3 py-3 ${
+        isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-zinc-200 bg-white'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium">{p.title}</span>
+            <span className={`text-[10px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+              v{p.version}
+            </span>
+          </div>
+          <div className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+            by {p.author}
+          </div>
+        </div>
+        {installed && (
+          <span className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 ring-1 ring-emerald-500/30">
+            Installed
+          </span>
+        )}
+      </div>
+      <div className={`mt-2 flex-1 text-[12px] leading-snug ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+        {p.description}
+      </div>
+      <button
+        onClick={onAction}
+        disabled={busy}
+        className={`mt-3 self-start rounded-md px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50 ${
+          installed
+            ? isDark
+              ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+              : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300'
+            : isDark
+              ? 'bg-blue-600 text-white hover:bg-blue-500'
+              : 'bg-blue-600 text-white hover:bg-blue-500'
+        }`}
+      >
+        {busy ? 'Working…' : installed ? 'Uninstall' : 'Install'}
+      </button>
+    </div>
+  )
+}
+
 export function PluginsView() {
   const isDark = useWorkspaceStore((s) => s.theme === 'dark')
   const statuses = usePluginStore((s) => s.statuses)
   const loading = usePluginStore((s) => s.loading)
   const hasWorkspace = useWorkspaceStore((s) => Boolean(s.workspace))
+
+  const installedIds = new Set(statuses.map((s) => s.name))
+  const [busy, setBusy] = useState<string | null>(null)
+
+  const installFromMarket = async (p: (typeof MARKETPLACE_PLUGINS)[number]) => {
+    const name = catalogFileName(p.id)
+    setBusy(name)
+    try {
+      if (installedIds.has(name)) {
+        await usePluginStore.getState().uninstall(name)
+      } else {
+        await usePluginStore.getState().install(name, p.source)
+      }
+    } finally {
+      setBusy(null)
+    }
+  }
 
   useEffect(() => {
     void usePluginStore.getState().reload()
@@ -132,13 +213,44 @@ export function PluginsView() {
         )}
         {hasWorkspace && (
           <>
-            <div className="space-y-2">
-              {statuses.length === 0 && !loading && (
-                <EmptyStatePanel icon="🧩" heading="No plugins found" description="Add a .js file to the plugins/ folder in your vault to extend Nexus with custom commands and hooks." />
-              )}
-              {statuses.map((s) => (
-                <PluginCard key={s.name} s={s} isDark={isDark} />
-              ))}
+            <div>
+              <div
+                className={`mb-2 text-[12px] font-semibold uppercase tracking-widest ${
+                  isDark ? 'text-zinc-400' : 'text-zinc-500'
+                }`}
+              >
+                Installed plugins
+              </div>
+              <div className="space-y-2">
+                {statuses.length === 0 && !loading && (
+                  <EmptyStatePanel icon="🧩" heading="No plugins installed" description="Install one from the marketplace below, or add a .js file to the plugins/ folder in your vault." />
+                )}
+                {statuses.map((s) => (
+                  <PluginCard key={s.name} s={s} isDark={isDark} />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div
+                className={`mb-2 text-[12px] font-semibold uppercase tracking-widest ${
+                  isDark ? 'text-zinc-400' : 'text-zinc-500'
+                }`}
+              >
+                Marketplace
+              </div>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {MARKETPLACE_PLUGINS.map((p) => (
+                  <MarketplaceCard
+                    key={p.id}
+                    p={p}
+                    isDark={isDark}
+                    installed={isCatalogInstalled(statuses.map((s) => s.name), p.id)}
+                    busy={busy === catalogFileName(p.id)}
+                    onAction={() => void installFromMarket(p)}
+                  />
+                ))}
+              </div>
             </div>
 
             <div

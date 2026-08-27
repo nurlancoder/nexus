@@ -314,4 +314,8 @@ export const pluginApi = {
     guardedInvoke<PluginInfo[]>('plugin_list', { workspacePath }),
   read: (workspacePath: string, name: string) =>
     guardedInvoke<string>('plugin_read', { workspacePath, name }),
+  install: (workspacePath: string, name: string, source: string) =>
+    guardedInvoke<void>('plugin_install', { workspacePath, name, source }),
+  uninstall: (workspacePath: string, name: string) =>
+    guardedInvoke<void>('plugin_uninstall', { workspacePath, name }),
 }

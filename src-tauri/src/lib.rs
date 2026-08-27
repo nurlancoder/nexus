@@ -84,7 +84,9 @@ pub fn run() {
       tags::tags_list,
       tags::tags_notes,
       plugins::plugin_list,
-      plugins::plugin_read
+      plugins::plugin_read,
+      plugins::plugin_install,
+      plugins::plugin_uninstall
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
