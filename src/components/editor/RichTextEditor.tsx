@@ -16,9 +16,17 @@ interface RichTextEditorProps {
   initialContent: string
   onChange: (markdown: string) => void
   readOnly?: boolean
+  registerEditor?: (editor: Editor | null) => void
+  registerScrollEl?: (el: HTMLDivElement | null) => void
 }
 
-export function RichTextEditor({ initialContent, onChange, readOnly = false }: RichTextEditorProps) {
+export function RichTextEditor({
+  initialContent,
+  onChange,
+  readOnly = false,
+  registerEditor,
+  registerScrollEl,
+}: RichTextEditorProps) {
   const onChangeRef = useRef(onChange)
   const [isFocused, setIsFocused] = useState(false)
   const [wordCount, setWordCount] = useState(0)
@@ -26,6 +34,12 @@ export function RichTextEditor({ initialContent, onChange, readOnly = false }: R
   useEffect(() => {
     onChangeRef.current = onChange
   }, [onChange])
+
+  const scrollEl = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    registerScrollEl?.(scrollEl.current)
+    return () => registerScrollEl?.(null)
+  }, [registerScrollEl])
 
   const editor = useEditor({
     extensions: createExtensions(),
@@ -46,6 +60,11 @@ export function RichTextEditor({ initialContent, onChange, readOnly = false }: R
     onBlur: () => setIsFocused(false),
   })
 
+  useEffect(() => {
+    registerEditor?.(editor)
+    return () => registerEditor?.(null)
+  }, [editor, registerEditor])
+
   return (
     <div className="relative flex h-full flex-col">
       {!readOnly && <EditorToolbar editor={editor} />}
@@ -55,6 +74,7 @@ export function RichTextEditor({ initialContent, onChange, readOnly = false }: R
         </div>
       )}
       <div
+        ref={scrollEl}
         className={`min-h-0 flex-1 overflow-y-auto bg-zinc-50 transition-shadow dark:bg-zinc-950 ${
           isFocused ? 'ring-1 ring-inset ring-blue-500/20' : ''
         }`}

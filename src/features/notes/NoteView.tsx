@@ -3,6 +3,8 @@ import { useNoteStore } from '@/stores/noteStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useLinkStore } from '@/stores/linkStore'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
+import { Outline } from '@/components/editor/Outline'
+import type { Editor } from '@tiptap/react'
 import { parseFrontmatter } from '@/core/parser/markdown'
 import { basename, dirname } from '@/lib/paths'
 
@@ -20,6 +22,9 @@ export function NoteView({ path }: NoteViewProps) {
   const theme = useWorkspaceStore((s) => s.theme)
   const isDark = theme === 'dark'
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  const [editor, setEditor] = useState<Editor | null>(null)
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
+  const [outlineVisible, setOutlineVisible] = useState(false)
   const resolution = useLinkStore((s) => s.resolutions[path])
   const backlinkCount = resolution?.backlinks.length ?? 0
 
@@ -120,6 +125,23 @@ export function NoteView({ path }: NoteViewProps) {
           </span>
         )}
         <div className="flex-1" />
+        <button
+          onClick={() => setOutlineVisible((v) => !v)}
+          title={outlineVisible ? 'Hide outline' : 'Show outline'}
+          aria-label={outlineVisible ? 'Hide outline' : 'Show outline'}
+          aria-pressed={outlineVisible}
+          className={`rounded-md p-1 text-[12px] leading-none transition-colors ${
+            outlineVisible
+              ? isDark
+                ? 'bg-blue-500/15 text-blue-400'
+                : 'bg-blue-100 text-blue-700'
+              : isDark
+                ? 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200'
+                : 'text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700'
+          }`}
+        >
+          ☰
+        </button>
         <span
           className={`text-[11px] ${
             saveStatus === 'saving'
@@ -146,11 +168,14 @@ export function NoteView({ path }: NoteViewProps) {
           Save
         </button>
       </div>
-      <div className="min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1">
         <RichTextEditor
           initialContent={doc.content}
           onChange={(md) => setContent(path, md)}
+          registerEditor={setEditor}
+          registerScrollEl={setScrollEl}
         />
+        {outlineVisible && <Outline editor={editor} scrollEl={scrollEl} />}
       </div>
     </div>
   )
