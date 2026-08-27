@@ -16,6 +16,7 @@ const DatabaseView = lazy(() => import('@/components/database/DatabaseView').the
 const AttachmentsView = lazy(() => import('@/components/attachments/AttachmentsView').then(m => ({ default: m.AttachmentsView })))
 const PluginsView = lazy(() => import('@/components/plugins/PluginsView').then(m => ({ default: m.PluginsView })))
 const SearchView = lazy(() => import('@/components/search/SearchView').then(m => ({ default: m.SearchView })))
+const TagsView = lazy(() => import('@/features/tags/TagsView').then(m => ({ default: m.TagsView })))
 const TasksView = lazy(() => import('@/components/tasks/TasksView').then(m => ({ default: m.TasksView })))
 const ProjectsView = lazy(() => import('@/components/projects/ProjectsView').then(m => ({ default: m.ProjectsView })))
 const CalendarView = lazy(() => import('@/components/calendar/CalendarView').then(m => ({ default: m.CalendarView })))
@@ -44,6 +45,8 @@ function PaneContent({ tab }: { tab: Tab }) {
         <CanvasView key={tab.canvasPath} path={tab.canvasPath} />
       ) : tab.kind === 'view' && tab.viewId === 'search' ? (
         <SearchView key={tab.id} />
+      ) : tab.kind === 'view' && tab.viewId === 'tags' ? (
+        <TagsView key={tab.id} />
       ) : tab.kind === 'view' && tab.viewId === 'graph' ? (
         <GraphView key={tab.id} />
       ) : tab.kind === 'view' && tab.viewId === 'insights' ? (

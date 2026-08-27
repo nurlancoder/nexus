@@ -12,6 +12,7 @@ export type ViewId =
   | 'templates'
   | 'plugins'
   | 'files'
+  | 'tags'
   | 'search'
   | 'settings'
 
@@ -34,6 +35,7 @@ export const ROUTES: Route[] = [
   { id: 'templates', label: 'Templates' },
   { id: 'plugins', label: 'Plugins' },
   { id: 'files', label: 'Files' },
+  { id: 'tags', label: 'Tags' },
   { id: 'search', label: 'Search' },
   { id: 'settings', label: 'Settings' },
 ]

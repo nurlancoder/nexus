@@ -13,6 +13,7 @@ const icons: Record<string, string> = {
   calendar: '◫',
   databases: '▦',
   files: '📎',
+  tags: '🏷',
   search: '🔍',
   settings: '⚙',
 }

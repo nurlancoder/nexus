@@ -144,7 +144,7 @@ fn ceil_char_boundary(s: &str, index: usize) -> usize {
   i
 }
 
-fn make_snippet(content: &str, idx: usize, len: usize) -> String {
+pub(crate) fn make_snippet(content: &str, idx: usize, len: usize) -> String {
   let start = floor_char_boundary(content, idx.saturating_sub(40));
   let end = ceil_char_boundary(content, (idx + len + 40).min(content.len()));
   let mut s = content[start..end].replace(['\n', '\r'], " ");

@@ -47,6 +47,24 @@ export const searchApi = {
     guardedInvoke<number>('search_reindex', { workspacePath }),
 }
 
+export interface TagCount {
+  tag: string
+  count: number
+}
+
+export interface TagNote {
+  path: string
+  title: string
+  snippet: string
+}
+
+export const tagApi = {
+  list: (workspacePath: string) =>
+    guardedInvoke<TagCount[]>('tags_list', { workspacePath }),
+  notes: (workspacePath: string, tag: string) =>
+    guardedInvoke<TagNote[]>('tags_notes', { workspacePath, tag }),
+}
+
 export interface LinkHit {
   path: string
   title: string

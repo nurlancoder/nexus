@@ -65,6 +65,13 @@ export function registerCoreCommands() {
     },
   })
   commands.register({
+    id: 'view.tags.open',
+    title: 'Browse tags',
+    category: 'View',
+    keywords: ['tags', 'browse', 'labels'],
+    run: () => useTabStore.getState().openView('tags', 'Tags'),
+  })
+  commands.register({
     id: 'view.settings.open',
     title: 'Open settings',
     category: 'View',

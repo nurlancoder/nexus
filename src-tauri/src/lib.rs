@@ -11,6 +11,7 @@ mod plugins;
 mod projects;
 mod search;
 mod security;
+mod tags;
 mod tasks;
 mod templates;
 #[cfg(test)]
@@ -80,6 +81,8 @@ pub fn run() {
       history::history_restore,
       history::history_prune,
       insights::insights_report,
+      tags::tags_list,
+      tags::tags_notes,
       plugins::plugin_list,
       plugins::plugin_read
     ])
