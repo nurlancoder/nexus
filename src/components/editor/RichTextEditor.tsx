@@ -1,5 +1,6 @@
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import { useEffect, useRef, useState } from 'react'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { createExtensions } from './extensions'
 import { EditorToolbar } from './EditorToolbar'
 import { SlashMenu } from './SlashMenu'
@@ -30,6 +31,7 @@ export function RichTextEditor({
   const onChangeRef = useRef(onChange)
   const [isFocused, setIsFocused] = useState(false)
   const [wordCount, setWordCount] = useState(0)
+  const focusMode = useWorkspaceStore((s) => s.focusMode)
 
   useEffect(() => {
     onChangeRef.current = onChange
@@ -79,7 +81,9 @@ export function RichTextEditor({
           isFocused ? 'ring-1 ring-inset ring-blue-500/20' : ''
         }`}
       >
-        <EditorContent editor={editor} />
+        <div className={focusMode ? 'mx-auto max-w-3xl' : ''}>
+          <EditorContent editor={editor} />
+        </div>
       </div>
       <SlashMenu editor={editor} />
       <LinkMenu editor={editor} />
