@@ -34,6 +34,9 @@
         _commands[spec.id] = spec.run;
         _postMessage({ type: "register", id: spec.id, title: spec.title });
       },
+      registerKeybinding: function(spec, commandId) {
+        _postMessage({ type: "register-keybinding", spec: spec, commandId: commandId });
+      },
       on: function(event, handler) {
         var handlerId = _nextHandlerId++;
         _handlers[handlerId] = handler;

@@ -10,6 +10,7 @@ import {
 } from './host'
 import { pluginBus } from './bus'
 import { commands } from '@/core/commands/registry'
+import { pluginKeybindings } from './keybindingRegistry'
 import { WORKER_SOURCE } from './worker-source'
 
 vi.mock('@/core/filesystem/api', () => ({
@@ -300,6 +301,23 @@ describe('executePlugin', () => {
       .find((c) => c.id === 'plugin:testplug:ping')
     expect(cmd?.title).toBe('Test ping')
     commands.unregister('plugin:testplug:ping')
+  })
+
+  it('nx.registerKeybinding registers a keybinding on the host', async () => {
+    pluginKeybindings.clearAll()
+    const err = await executePlugin(
+      `nx.registerCommand({ id: 'jump', title: 'Jump', run: function () {} });` +
+        `nx.registerKeybinding({ id: 'kb', key: 'j', mod: true, shift: true }, 'jump');`,
+      'testplug',
+    )
+    expect(err).toBeNull()
+    const binding = pluginKeybindings
+      .all()
+      .find((b) => b.id === 'kb' && b.plugin === 'testplug')
+    expect(binding?.commandId).toBe('plugin:testplug:jump')
+    expect(binding?.spec).toEqual({ key: 'j', mod: true, shift: true, alt: false })
+    pluginKeybindings.clearAll()
+    commands.unregister('plugin:testplug:jump')
   })
 
   it('nx.on subscribes to events via the host', async () => {

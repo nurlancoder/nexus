@@ -4,6 +4,7 @@ import { useNoteStore } from '@/stores/noteStore'
 import { useTabStore } from '@/stores/tabStore'
 import { WORKER_SOURCE } from './worker-source'
 import { pluginBus, type PluginEventHandler, type PluginEventName } from './bus'
+import { pluginKeybindings, type KeybindingSpec } from './keybindingRegistry'
 
 export interface PluginStatus {
   name: string
@@ -64,6 +65,7 @@ type WorkerToHostMessage =
   | { type: 'error'; error: string }
   | { type: 'call'; id: number; method: string; args: unknown[] }
   | { type: 'register'; id: string; title: string }
+  | { type: 'register-keybinding'; spec: KeybindingSpec; commandId: string }
   | { type: 'subscribe'; event: string; handlerId: number }
   | { type: 'log'; message: string }
 
@@ -215,6 +217,12 @@ export function executePlugin(
           break
         }
 
+        case 'register-keybinding': {
+          const fullCommandId = `${COMMAND_PREFIX}${pluginName}:${msg.commandId}`
+          pluginKeybindings.register(pluginName, msg.spec, fullCommandId)
+          break
+        }
+
         case 'subscribe': {
           const handler: PluginEventHandler = (detail) => {
             worker.postMessage({
@@ -243,10 +251,11 @@ export function executePlugin(
 }
 
 function unloadAll(): void {
-  for (const [, handle] of activeWorkers) {
+  for (const [name, handle] of activeWorkers) {
     handle.worker.terminate()
     for (const id of handle.commandIds) commands.unregister(id)
     for (const unsub of handle.unsubs) unsub()
+    pluginKeybindings.clearPlugin(name)
   }
   activeWorkers.clear()
   pluginBus.clearAll()
@@ -259,6 +268,7 @@ export function terminatePlugin(name: string): void {
   handle.worker.terminate()
   for (const id of handle.commandIds) commands.unregister(id)
   for (const unsub of handle.unsubs) unsub()
+  pluginKeybindings.clearPlugin(name)
   activeWorkers.delete(name)
 }
 

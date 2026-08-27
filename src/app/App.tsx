@@ -17,6 +17,8 @@ import { WelcomeScreen } from '@/features/workspace/WelcomeScreen'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { registerCoreCommands } from '@/core/commands/core'
 import { matchesShortcut } from '@/core/shortcuts/model'
+import { pluginKeybindings } from '@/core/plugins/keybindingRegistry'
+import { commands } from '@/core/commands/registry'
 import { createNoteInInbox } from '@/features/notes/actions'
 
 registerCoreCommands()
@@ -133,6 +135,19 @@ export default function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [isMac, setShortcutsOpen])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return
+      const binding = pluginKeybindings.match(e, isMac)
+      if (binding) {
+        e.preventDefault()
+        commands.run(binding.commandId)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isMac])
 
   if (!workspace || welcomeVisible) {
     return (
