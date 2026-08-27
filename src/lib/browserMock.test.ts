@@ -4,6 +4,14 @@ import { browserInvoke } from './browserMock'
 describe('browser mock backend', () => {
   const WS = '/demo/vault'
 
+  const collectNames = (nodes: { name: string; children?: unknown[] }[], acc: string[] = []): string[] => {
+    for (const n of nodes) {
+      acc.push(n.name)
+      if (n.children) collectNames(n.children as { name: string; children?: unknown[] }[], acc)
+    }
+    return acc
+  }
+
   beforeEach(() => {
     localStorage.clear()
   })
@@ -11,8 +19,8 @@ describe('browser mock backend', () => {
   it('creates a workspace and seeds a welcome note', async () => {
     const ws = await browserInvoke('workspace_create', { name: 'vault', parentPath: '/demo' })
     expect((ws as { path: string }).path).toBe('/demo/vault')
-    const tree = (await browserInvoke('workspace_tree', { path: WS })) as { name: string }[]
-    expect(tree.some((n) => n.name.endsWith('.md'))).toBe(true)
+    const names = collectNames((await browserInvoke('workspace_tree', { path: WS })) as { name: string; children?: unknown[] }[])
+    expect(names.some((n) => n.endsWith('.md'))).toBe(true)
   })
 
   it('round-trips note write/read and updates the tree immediately', async () => {
@@ -57,5 +65,41 @@ describe('browser mock backend', () => {
     await browserInvoke('task_toggle', { path: `${WS}/Todo.md`, line: 2, done: true })
     const after = (await browserInvoke('task_scan', { workspacePath: WS })) as { text: string; done: boolean }[]
     expect(after.find((t) => t.text === 'one')?.done).toBe(true)
+  })
+
+  it('seeds a demo workspace covering every view', async () => {
+    await browserInvoke('workspace_create', { name: 'vault', parentPath: '/demo' })
+
+    const tasks = (await browserInvoke('task_scan', { workspacePath: WS })) as { text: string; done: boolean }[]
+    expect(tasks.length).toBeGreaterThan(0)
+    expect(tasks.some((t) => t.done)).toBe(true)
+
+    const projects = (await browserInvoke('project_list', { workspacePath: WS })) as { name: string; openTasks: number }[]
+    expect(projects.some((p) => p.name === 'Projects')).toBe(true)
+    expect(projects.some((p) => p.openTasks > 0)).toBe(true)
+
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const today = [now.getFullYear(), pad(now.getMonth() + 1)]
+    const events = (await browserInvoke('calendar_events', { workspacePath: WS, year: today[0], month: today[1] })) as { kind: string }[]
+    expect(events.some((e) => e.kind === 'daily')).toBe(true)
+
+    const tags = (await browserInvoke('tags_list', { workspacePath: WS })) as { tag: string }[]
+    expect(tags.some((t) => t.tag === 'project')).toBe(true)
+
+    const graph = (await browserInvoke('linking_graph', { workspacePath: WS })) as { title: string; links: string[] }[]
+    expect(graph.some((n) => n.links.length > 0)).toBe(true)
+
+    const templates = (await browserInvoke('template_list', { workspacePath: WS })) as { name: string }[]
+    expect(templates.some((t) => t.name === 'Book Review')).toBe(true)
+
+    const names = collectNames((await browserInvoke('workspace_tree', { path: WS })) as { name: string; children?: unknown[] }[])
+    expect(names.some((n) => n.endsWith('.canvas'))).toBe(true)
+
+    const dbs = (await browserInvoke('database_list', { workspacePath: WS })) as { name: string }[]
+    expect(dbs.some((d) => d.name === 'Projects')).toBe(true)
+
+    const attachments = (await browserInvoke('attachment_list', { workspacePath: WS })) as { name: string }[]
+    expect(attachments.some((a) => a.name === 'hello.txt')).toBe(true)
   })
 })

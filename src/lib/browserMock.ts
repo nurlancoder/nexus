@@ -89,6 +89,142 @@ function saveStore(workspacePath: string, store: MockStore): void {
 }
 
 // ---------------------------------------------------------------------------
+// Demo workspace seeding
+// ---------------------------------------------------------------------------
+
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function seedDemoStore(ws: string, store: MockStore): void {
+  const now = new Date().toISOString()
+  const today = isoDate(new Date())
+  const pushNote = (path: string, title: string, content: string) => {
+    store.notes.push({ path, title, content, createdAt: now, updatedAt: now })
+  }
+
+  pushNote(
+    `${ws}/00-Inbox/Quick capture.md`,
+    'Quick capture',
+    [
+      '# Quick capture',
+      '',
+      'A scratch space for unorganized thoughts. File them later or leave them here.',
+      '',
+      '- [ ] Review the weekly plan @due:2026-08-30 #inbox',
+      '- [ ] Reply to project email',
+      '',
+    ].join('\n'),
+  )
+
+  pushNote(
+    `${ws}/Projects/Nexus Roadmap.md`,
+    'Nexus Roadmap',
+    [
+      '---',
+      'tags: [project, roadmap]',
+      '---',
+      '# Nexus Roadmap',
+      '',
+      'Product plan for the [[Nexus Roadmap|workspace]]. See [[Design System]] for visual tokens.',
+      '',
+      '## Current quarter',
+      '- [x] Local-first storage @done',
+      '- [ ] Plugin marketplace @due:2026-09-01 @priority:high #project',
+      '- [ ] Saved searches @due:2026-08-28 #project',
+      '- [ ] Graph performance #project',
+      '',
+    ].join('\n'),
+  )
+
+  pushNote(
+    `${ws}/Knowledge/Design System.md`,
+    'Design System',
+    [
+      '---',
+      'tags: [design, ui]',
+      '---',
+      '# Design System',
+      '',
+      'Shared visual language for [[Nexus Roadmap]].',
+      '',
+      '## Tokens',
+      '- Primary: indigo-600',
+      '- Accent: emerald-500',
+      '- Nav: [[Nexus Roadmap]]',
+      '',
+    ].join('\n'),
+  )
+
+  pushNote(
+    `${ws}/Knowledge/Zettelkasten method.md`,
+    'Zettelkasten method',
+    [
+      '---',
+      'tags: [notes, method]',
+      '---',
+      '# Zettelkasten method',
+      '',
+      'A note-taking system of [[Design System|atomic notes]] linked together.',
+      'Every note should stand alone and connect to related ideas. Try it with #notes.',
+      '',
+    ].join('\n'),
+  )
+
+  pushNote(
+    `${ws}/Daily/${today}.md`,
+    today,
+    [
+      `# ${today}`,
+      '',
+      'Daily entry. Links: [[Nexus Roadmap]] and #daily',
+      '',
+      '- [ ] Morning review @due:${today} #daily',
+      '',
+    ].join('\n'),
+  )
+
+  if (!store.canvases.some((c) => c.kind === 'canvas')) {
+    store.canvases.push({ kind: 'canvas', path: `${ws}/Canvases/Mindmap.canvas`, content: '' })
+  }
+  if (store.templates.length === 0) {
+    store.templates.push({
+      name: 'Book Review',
+      source: [
+        '# ${title}',
+        '',
+        '## Summary',
+        '',
+        '## Key takeaways',
+        '- ',
+        '',
+        '## Notes',
+        '',
+      ].join('\n'),
+    })
+  }
+  if (store.databases.length === 0) {
+    store.databases.push({
+      name: 'Projects',
+      definition: {
+        sourceFolders: ['Projects'],
+        filterKey: null,
+        filterValue: null,
+        columns: ['title', 'created'],
+      },
+    })
+  }
+  if (store.attachments.length === 0) {
+    store.attachments.push({
+      path: `${ws}/attachments/hello.txt`,
+      name: 'hello.txt',
+      size: 5,
+      data: btoa('hello'),
+    })
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Note content helpers
 // ---------------------------------------------------------------------------
 
@@ -194,15 +330,7 @@ export function browserInvoke<T>(command: string, args: Record<string, unknown> 
         lastOpenedAt: new Date().toISOString(),
       }
       const store = loadStore(path)
-      if (store.notes.length === 0) {
-        store.notes.push({
-          path: `${path}/Welcome.md`,
-          title: 'Welcome',
-          content: '# Welcome to Nexus\n\nThis is your first note. Create a `#tag`, link `[[another note]]` and try the plugins view.\n',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-      }
+      if (store.notes.length === 0) seedDemoStore(path, store)
       saveStore(path, store)
       return send(ws)
     }
@@ -218,15 +346,7 @@ export function browserInvoke<T>(command: string, args: Record<string, unknown> 
         lastOpenedAt: new Date().toISOString(),
       }
       const store = loadStore(path)
-      if (store.notes.length === 0) {
-        store.notes.push({
-          path: `${path}/Welcome.md`,
-          title: 'Welcome',
-          content: '# Welcome to Nexus\n\nNo notes yet — press Ctrl+N to create one.\n',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-      }
+      if (store.notes.length === 0) seedDemoStore(path, store)
       saveStore(path, store)
       return send(ws)
     }
