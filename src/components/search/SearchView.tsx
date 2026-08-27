@@ -3,6 +3,12 @@ import { searchApi, type SearchResult } from '@/core/filesystem/api'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useTabStore } from '@/stores/tabStore'
 import { collectDirs } from '@/lib/tree'
+import {
+  loadSavedSearches,
+  saveSearch,
+  renameSavedSearch,
+  deleteSavedSearch,
+} from '@/lib/savedSearches'
 import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 
 const RECENT_KEY = 'nexus.recentSearches'
@@ -68,6 +74,10 @@ export function SearchView() {
   const [searching, setSearching] = useState(false)
   const [searched, setSearched] = useState('')
   const [recent, setRecent] = useState<string[]>(loadRecent())
+  const [saved, setSaved] = useState(loadSavedSearches())
+  const [savedOpen, setSavedOpen] = useState(false)
+  const [renameIndex, setRenameIndex] = useState<number | null>(null)
+  const [renameDraft, setRenameDraft] = useState('')
   const [error, setError] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const timer = useRef<number | undefined>(undefined)
@@ -158,7 +168,134 @@ export function SearchView() {
               </option>
             ))}
           </select>
+          {query.trim().length >= 2 && (
+            <button
+              onClick={() => {
+                saveSearch(query.trim(), query.trim())
+                setSaved(loadSavedSearches())
+                setSavedOpen(true)
+              }}
+              title="Save this search"
+              className={`shrink-0 rounded-md border px-3 py-2 text-[13px] font-medium transition-colors ${
+                isDark
+                  ? 'border-zinc-600 bg-zinc-700 text-zinc-100 hover:bg-zinc-600'
+                  : 'border-zinc-300 bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+              }`}
+            >
+              Save
+            </button>
+          )}
         </div>
+
+        {saved.length > 0 && !query && (
+          <div className="mt-3">
+            <div className="mb-1 flex items-center justify-between">
+              <button
+                onClick={() => setSavedOpen((o) => !o)}
+                aria-expanded={savedOpen}
+                className={`flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${
+                  isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                <span
+                  className={`inline-block transition-transform ${savedOpen ? 'rotate-90' : ''}`}
+                >
+                  ▶
+                </span>
+                Saved searches
+              </button>
+            </div>
+            {savedOpen && (
+              <ul className="space-y-1">
+                {saved.map((s, i) => (
+                  <li
+                    key={`${s.query}-${i}`}
+                    className={`group flex items-center justify-between rounded-md px-2 py-1 ${
+                      isDark ? 'bg-zinc-800' : 'bg-zinc-100'
+                    }`}
+                  >
+                    {renameIndex === i ? (
+                      <input
+                        autoFocus
+                        value={renameDraft}
+                        onChange={(e) => setRenameDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            renameSavedSearch(i, renameDraft)
+                            setSaved(loadSavedSearches())
+                            setRenameIndex(null)
+                          } else if (e.key === 'Escape') {
+                            setRenameIndex(null)
+                          }
+                        }}
+                        onBlur={() => {
+                          renameSavedSearch(i, renameDraft)
+                          setSaved(loadSavedSearches())
+                          setRenameIndex(null)
+                        }}
+                        className={`w-full rounded border px-1.5 py-0.5 text-[12px] outline-none ${
+                          isDark
+                            ? 'border-zinc-600 bg-zinc-900 text-zinc-100'
+                            : 'border-zinc-300 bg-white text-zinc-900'
+                        }`}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setQuery(s.query)}
+                        className="min-w-0 flex-1 text-left leading-tight"
+                      >
+                        <span className="block truncate text-[12.5px] font-medium">
+                          {s.name}
+                        </span>
+                        <span
+                          className={`block max-w-full truncate text-[11px] ${
+                            isDark ? 'text-zinc-500' : 'text-zinc-400'
+                          }`}
+                        >
+                          {s.query}
+                        </span>
+                      </button>
+                    )}
+                    {renameIndex !== i && (
+                      <span className="ml-2 flex shrink-0 items-center gap-1">
+                        <button
+                          aria-label={`Rename saved search ${s.name}`}
+                          title="Rename"
+                          onClick={() => {
+                            setRenameIndex(i)
+                            setRenameDraft(s.name)
+                          }}
+                          className={`rounded px-1 text-[11px] transition-colors ${
+                            isDark
+                              ? 'text-zinc-500 hover:text-zinc-200'
+                              : 'text-zinc-400 hover:text-zinc-700'
+                          }`}
+                        >
+                          ✎
+                        </button>
+                        <button
+                          aria-label={`Delete saved search ${s.name}`}
+                          title="Delete"
+                          onClick={() => {
+                            deleteSavedSearch(i)
+                            setSaved(loadSavedSearches())
+                          }}
+                          className={`rounded px-1 text-[11px] transition-colors ${
+                            isDark
+                              ? 'text-zinc-500 hover:text-red-400'
+                              : 'text-zinc-400 hover:text-red-500'
+                          }`}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         {recent.length > 0 && !query && (
           <div className="mt-3">
