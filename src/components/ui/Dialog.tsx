@@ -95,9 +95,9 @@ export function PromptDialog({
 
   useEffect(() => {
     if (open) {
-      // oxlint-disable-next-line react(set-state-in-effect) — reset form on open
+      // oxlint-disable-next-line set-state-in-effect — reset form on open
       setValue(defaultValue)
-      // oxlint-disable-next-line react(set-state-in-effect) — reset form on open
+      // oxlint-disable-next-line set-state-in-effect — reset form on open
       setError(null)
       setTimeout(() => inputRef.current?.focus(), 50)
     }

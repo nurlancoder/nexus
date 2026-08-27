@@ -70,12 +70,6 @@ export function TabBar() {
               e.preventDefault()
               setCtxMenu({ x: e.clientX, y: e.clientY, tab })
             }}
-            onMouseDown={(e) => {
-              if (e.button === 1) {
-                e.preventDefault()
-                closeTab(tab.id)
-              }
-            }}
             onClick={() => activateTab(tab.id)}
             onAuxClick={(e) => {
               if (e.button === 1) closeTab(tab.id)

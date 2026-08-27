@@ -114,17 +114,22 @@ export const useTabStore = create<TabState>((set, get) => ({
     }
   },
 
-  closeAll: () =>
-    set({ tabs: [], activeTabId: null, splitTabId: null }),
+  closeAll: () => {
+    const { tabs, closedTabs } = get()
+    const nextClosed = [...tabs, ...closedTabs].slice(0, 20)
+    set({ tabs: [], activeTabId: null, splitTabId: null, closedTabs: nextClosed })
+  },
 
   closeOthers: (id) => {
-    const { tabs, activeTabId, splitTabId } = get()
+    const { tabs, activeTabId, splitTabId, closedTabs } = get()
     const tab = tabs.find((t) => t.id === id)
     if (!tab) return
     const next = [tab]
+    const closedTabs1 = tabs.filter((t) => t.id !== id)
+    const nextClosed = [...closedTabs1, ...closedTabs].slice(0, 20)
     const nextActive = activeTabId === id ? id : tab.id
     const nextSplit = splitTabId === id ? splitTabId : null
-    set({ tabs: next, activeTabId: nextActive, splitTabId: nextSplit })
+    set({ tabs: next, activeTabId: nextActive, splitTabId: nextSplit, closedTabs: nextClosed })
   },
 
   activateTab: (id) => set({ activeTabId: id }),

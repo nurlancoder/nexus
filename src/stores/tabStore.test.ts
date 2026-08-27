@@ -11,6 +11,7 @@ function seedTabs() {
     activeTabId: 'note:a',
     splitTabId: null,
     splitRatio: 0.5,
+    closedTabs: [],
   })
 }
 
@@ -67,6 +68,25 @@ describe('tabStore', () => {
     expect(ts.tabs).toHaveLength(0)
     expect(ts.activeTabId).toBeNull()
     expect(ts.splitTabId).toBeNull()
+  })
+
+  it('closeAll records closed tabs so reopen restores them', () => {
+    useTabStore.getState().closeAll()
+    expect(useTabStore.getState().closedTabs.length).toBe(3)
+    useTabStore.getState().reopenLastClosed()
+    expect(useTabStore.getState().tabs).toHaveLength(1)
+    expect(useTabStore.getState().activeTabId).toBe('note:a')
+  })
+
+  it('closeOthers records the discarded tabs so reopen restores them', () => {
+    useTabStore.setState({ activeTabId: 'note:b' })
+    useTabStore.getState().closeOthers('note:b')
+    expect(useTabStore.getState().tabs.map((t) => t.id)).toEqual(['note:b'])
+    useTabStore.getState().reopenLastClosed()
+    expect(useTabStore.getState().tabs.map((t) => t.id)).toEqual(['note:b', 'note:a'])
+    useTabStore.getState().reopenLastClosed()
+    expect(useTabStore.getState().tabs).toHaveLength(3)
+    expect(useTabStore.getState().activeTabId).toBe('view:graph')
   })
 
   it('cycleTab wraps in both directions', () => {

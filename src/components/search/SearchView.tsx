@@ -75,15 +75,16 @@ export function SearchView() {
   const dirs = useMemo(() => collectDirs(fileTree), [fileTree])
 
   useEffect(() => {
-    // oxlint-disable-next-line react(set-state-in-effect) — reset selection when results change
-    setSelectedIndex(0)
-  }, [results])
-
-  useEffect(() => {
     const q = query.trim()
     if (!workspace) return
     window.clearTimeout(timer.current)
-    if (q.length < 2) return
+    if (q.length < 2) {
+      // oxlint-disable-next-line set-state-in-effect — clear stale results when query short
+      setResults([])
+      setSelectedIndex(0)
+      setSearching(false)
+      return
+    }
     timer.current = window.setTimeout(async () => {
       setSearching(true)
       try {
@@ -92,11 +93,13 @@ export function SearchView() {
           ? res.filter((r) => r.path.replace(/\\/g, '/').includes(`/${folder}/`))
           : res
         setResults(filtered)
+        setSelectedIndex(0)
         setSearched(q)
         setError('')
       } catch (e) {
         setError(String(e))
         setResults([])
+        setSelectedIndex(0)
         setSearched(q)
       } finally {
         setSearching(false)

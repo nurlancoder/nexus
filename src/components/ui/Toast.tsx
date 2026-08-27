@@ -16,7 +16,7 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 
 let toastId = 0
 
-// oxlint-disable-next-line react(only-export-components) — standard Context + Provider pattern
+// oxlint-disable-next-line only-export-components — standard Context + Provider pattern
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext)
   if (!ctx) throw new Error('useToast must be used within ToastProvider')
