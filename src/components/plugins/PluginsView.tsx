@@ -159,24 +159,30 @@ export function PluginsView() {
 
   const installedIds = new Set(statuses.map((s) => s.name))
   const [busy, setBusy] = useState<string | null>(null)
+  const [marketError, setMarketError] = useState<string | null>(null)
+  const workspacePath = useWorkspaceStore((s) => s.workspace?.path)
 
   const installFromMarket = async (p: (typeof MARKETPLACE_PLUGINS)[number]) => {
     const name = catalogFileName(p.id)
     setBusy(name)
+    setMarketError(null)
     try {
       if (installedIds.has(name)) {
         await usePluginStore.getState().uninstall(name)
       } else {
         await usePluginStore.getState().install(name, p.source)
       }
+    } catch (e) {
+      setMarketError(String(e))
     } finally {
       setBusy(null)
     }
   }
 
   useEffect(() => {
+    if (!workspacePath) return
     void usePluginStore.getState().reload()
-  }, [])
+  }, [workspacePath])
 
   const btn = `rounded-md px-2.5 py-1.5 text-[12px] transition-colors ${
     isDark
@@ -204,6 +210,25 @@ export function PluginsView() {
           {loading ? 'Loading…' : 'Reload plugins'}
         </button>
       </div>
+
+      {marketError && (
+        <div
+          className={`flex shrink-0 items-start gap-2 border-b px-3 py-2 text-[12px] ${
+            isDark
+              ? 'border-red-900/60 bg-red-950/40 text-red-300'
+              : 'border-red-200 bg-red-50 text-red-600'
+          }`}
+        >
+          <span className="flex-1">{marketError}</span>
+          <button
+            onClick={() => setMarketError(null)}
+            className="text-[11px] underline"
+            aria-label="Dismiss error"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
         {!hasWorkspace && (

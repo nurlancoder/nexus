@@ -1,6 +1,6 @@
 import { invoke } from '@/lib/tauri'
 import { isTauri } from '@/lib/tauriEnv'
-import { browserWorkspaceApi, throwBrowserError } from '@/lib/browserMock'
+import { browserWorkspaceApi, browserInvoke } from '@/lib/browserMock'
 import type { Workspace, FileNode } from '@/types'
 
 const tauriWorkspaceApi = {
@@ -16,7 +16,7 @@ export const workspaceApi = isTauri()
   : browserWorkspaceApi
 
 const guardedInvoke = <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
-  if (!isTauri()) throwBrowserError(command)
+  if (!isTauri()) return browserInvoke<T>(command, args)
   return invoke<T>(command, args)
 }
 

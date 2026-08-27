@@ -111,6 +111,11 @@ export default function App() {
         useShortcutsStore.getState().toggle()
         return
       }
+      if ((isMac ? e.metaKey : e.ctrlKey) && /^[1-9]$/.test(e.key)) {
+        e.preventDefault()
+        useTabStore.getState().activateTabByIndex(Number(e.key) - 1)
+        return
+      }
       if (matchesShortcut(e, { key: 'Tab' }, isMac) && e.ctrlKey) {
         e.preventDefault()
         if (e.shiftKey) {

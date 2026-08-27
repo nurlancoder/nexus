@@ -64,7 +64,7 @@ nx.on('note:open', function (note) {
     author: 'Nexus',
     version: '1.0.0',
     description:
-      'Registers a keybinding (Ctrl+Shift+T) that counts open todo items in the active note.',
+      'Registers a keybinding (Ctrl+Shift+D) that counts open todo items in the active note.',
     source: `// Todo Counter plugin (from the Nexus marketplace).
 // nx.registerCommand exposes a runnable command; nx.registerKeybinding
 // binds it to a chord. The counter is logged to the plugin console.
@@ -84,7 +84,7 @@ nx.registerCommand({
   },
 })
 nx.registerKeybinding(
-  { id: 'count-todos-kb', key: 't', mod: true, shift: true },
+  { id: 'count-todos-kb', key: 'd', mod: true, shift: true },
   'count-todos'
 )
 `,

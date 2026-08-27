@@ -18,7 +18,13 @@ import type { AnyExtension } from '@tiptap/core'
 export function createExtensions(): AnyExtension[] {
   return [
     StarterKit.configure({ link: false, underline: false }),
-    Underline,
+    Underline.extend({
+      addKeyboardShortcuts() {
+        return {
+          'Mod-u': () => this.editor.commands.toggleUnderline(),
+        }
+      },
+    }),
     Highlight.configure({ multicolor: true }),
     Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
     Image,

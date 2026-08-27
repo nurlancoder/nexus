@@ -22,6 +22,9 @@ const ProjectsView = lazy(() => import('@/components/projects/ProjectsView').the
 const CalendarView = lazy(() => import('@/components/calendar/CalendarView').then(m => ({ default: m.CalendarView })))
 const TemplatesView = lazy(() => import('@/components/templates/TemplatesView').then(m => ({ default: m.TemplatesView })))
 const SettingsView = lazy(() => import('@/components/settings/SettingsView').then(m => ({ default: m.SettingsView })))
+const InboxView = lazy(() => import('@/features/notes/InboxView').then(m => ({ default: m.InboxView })))
+const NotesView = lazy(() => import('@/features/notes/NotesView').then(m => ({ default: m.NotesView })))
+const FilesView = lazy(() => import('@/components/layout/FilesView').then(m => ({ default: m.FilesView })))
 
 function LoadingIndicator() {
   const isDark = useWorkspaceStore((s) => s.theme) === 'dark'
@@ -69,6 +72,12 @@ function PaneContent({ tab }: { tab: Tab }) {
         <PluginsView key={tab.id} />
       ) : tab.kind === 'view' && tab.viewId === 'settings' ? (
         <SettingsView key={tab.id} />
+      ) : tab.kind === 'view' && tab.viewId === 'inbox' ? (
+        <InboxView key={tab.id} />
+      ) : tab.kind === 'view' && tab.viewId === 'notes' ? (
+        <NotesView key={tab.id} />
+      ) : tab.kind === 'view' && tab.viewId === 'files' ? (
+        <FilesView key={tab.id} />
       ) : (
         <EmptyState key={tab.id} label={route?.label ?? tab.title} />
       )}

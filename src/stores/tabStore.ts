@@ -25,6 +25,7 @@ interface TabState {
   closeOthers: (id: string) => void
   closeAll: () => void
   activateTab: (id: string) => void
+  activateTabByIndex: (index: number) => void
   cycleTab: (dir: 1 | -1) => void
   reopenLastClosed: () => void
   setSplit: (id: string | null) => void
@@ -133,6 +134,12 @@ export const useTabStore = create<TabState>((set, get) => ({
   },
 
   activateTab: (id) => set({ activeTabId: id }),
+
+  activateTabByIndex: (index) => {
+    const { tabs } = get()
+    if (index < 0 || index >= tabs.length) return
+    set({ activeTabId: tabs[index].id })
+  },
 
   cycleTab: (dir) => {
     const { tabs, activeTabId } = get()
