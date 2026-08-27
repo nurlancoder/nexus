@@ -92,11 +92,7 @@ pub fn reindex_workspace(app: &tauri::AppHandle, root: &Path) -> Result<usize, S
     if n.is_dir {
       continue;
     }
-    let ext = Path::new(&n.name)
-      .extension()
-      .map(|e| e.to_string_lossy().to_lowercase())
-      .unwrap_or_default();
-    if ext != "md" && ext != "markdown" && ext != "txt" {
+    if !crate::util::is_text_file(&n.name) {
       continue;
     }
     index_note(&conn, workspace_id, &n.path)?;

@@ -169,6 +169,8 @@ export function AttachmentsView() {
                 <span
                   role="button"
                   tabIndex={0}
+                  title="Delete attachment"
+                  aria-label="Delete attachment"
                   onClick={(e) => {
                     e.stopPropagation()
                     setConfirmDelete(confirmDelete === item.path ? null : item.path)
@@ -293,11 +295,14 @@ function AttachmentPreview({
             isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-zinc-200 text-zinc-600'
           }`}
           title="Copy markdown embed to clipboard"
+          aria-label="Copy markdown embed to clipboard"
         >
           ⧉ MD
         </button>
         <button
           onClick={() => useAttachmentStore.getState().select(null)}
+          title="Close preview"
+          aria-label="Close preview"
           className={`rounded px-1.5 py-1 text-[12px] ${
             isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-zinc-200 text-zinc-600'
           }`}
@@ -319,6 +324,8 @@ function AttachmentPreview({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setImgZoom((z) => Math.max(0.25, z - 0.25))}
+                title="Zoom out"
+                aria-label="Zoom out"
                 className={`rounded px-1.5 py-0.5 text-[10px] ${isDark ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
               >
                 −
@@ -328,6 +335,8 @@ function AttachmentPreview({
               </span>
               <button
                 onClick={() => setImgZoom((z) => Math.min(3, z + 0.25))}
+                title="Zoom in"
+                aria-label="Zoom in"
                 className={`rounded px-1.5 py-0.5 text-[10px] ${isDark ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
               >
                 +

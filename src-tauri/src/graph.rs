@@ -66,13 +66,7 @@ pub(crate) fn resolve_link(target: &str, index: &HashMap<String, String>) -> Opt
 pub fn graph(app: &tauri::AppHandle, workspace_path: &str) -> Result<Vec<GraphNode>, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  let ws_id: i64 = conn
-    .query_row(
-      "SELECT id FROM workspaces WHERE path = ?1",
-      params![workspace_path],
-      |r| r.get(0),
-    )
-    .map_err(|e| e.to_string())?;
+  let ws_id = crate::util::resolve_workspace_id(&conn, workspace_path)?;
 
   let mut stmt = conn
     .prepare("SELECT path, title FROM files WHERE workspace_id = ?1 AND type = 'note'")

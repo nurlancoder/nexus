@@ -22,6 +22,19 @@ export default defineConfig({
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
             return 'vendor-react'
           }
+          // Tier 1: ProseMirror core (always needed when editor loads)
+          if (id.includes('node_modules/prosemirror-') || id.includes('node_modules/@tiptap/pm')) {
+            return 'vendor-prosemirror'
+          }
+          // Tier 2: Table extension (heavy, only used with tables)
+          if (id.includes('node_modules/@tiptap/extension-table') || id.includes('node_modules/prosemirror-tables')) {
+            return 'vendor-tiptap-tables'
+          }
+          // Tier 3: Markdown serialization (heavy, only for markdown I/O)
+          if (id.includes('node_modules/@tiptap/markdown') || id.includes('node_modules/marked')) {
+            return 'vendor-tiptap-markdown'
+          }
+          // Tier 4: Everything else tiptap
           if (id.includes('node_modules/@tiptap/')) {
             return 'vendor-tiptap'
           }

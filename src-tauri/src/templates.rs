@@ -162,16 +162,7 @@ pub fn template_list<R: tauri::Runtime>(
 ) -> Result<Vec<TemplateInfo>, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  let found: Option<i64> = conn
-    .query_row(
-      "SELECT id FROM workspaces WHERE path = ?1",
-      rusqlite::params![workspace_path],
-      |r| r.get(0),
-    )
-    .ok();
-  if found.is_none() {
-    return Err("Unknown workspace".into());
-  }
+  crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   list_templates(&workspace_path)
 }
 
@@ -195,16 +186,7 @@ pub fn template_create_note<R: tauri::Runtime>(
   {
     let db = app.state::<Database>();
     let conn = db.conn();
-    let found: Option<i64> = conn
-      .query_row(
-        "SELECT id FROM workspaces WHERE path = ?1",
-        rusqlite::params![workspace_path],
-        |r| r.get(0),
-      )
-      .ok();
-    if found.is_none() {
-      return Err("Unknown workspace".into());
-    }
+    crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   }
   let path = create_note_from_template(
     &workspace_path,
@@ -220,33 +202,6 @@ pub fn template_create_note<R: tauri::Runtime>(
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  fn mock_app() -> tauri::AppHandle<tauri::test::MockRuntime> {
-    let app = tauri::test::mock_app();
-    let conn = rusqlite::Connection::open_in_memory().unwrap();
-    conn.execute_batch(
-      "CREATE TABLE workspaces (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        path TEXT NOT NULL UNIQUE,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        last_opened_at TEXT
-      );",
-    )
-    .unwrap();
-    app.manage(crate::db::Database(std::sync::Mutex::new(conn)));
-    app.handle().clone()
-  }
-
-  fn register_ws(app: &tauri::AppHandle<tauri::test::MockRuntime>, path: &str) {
-    let db = app.state::<crate::db::Database>();
-    let conn = db.conn();
-    conn.execute(
-      "INSERT INTO workspaces (name, path) VALUES (?1, ?2)",
-      rusqlite::params![std::path::Path::new(path).file_name().unwrap().to_str().unwrap(), path],
-    )
-    .unwrap();
-  }
 
   #[test]
   fn renders_all_variables() {
@@ -308,7 +263,7 @@ mod tests {
 
   #[test]
   fn template_create_note_rejects_unknown_workspace() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir =
       std::env::temp_dir().join(format!("nexus_test_tpl_ws_val_{}", std::process::id()));
     std::fs::create_dir_all(dir.join("07-Templates")).unwrap();
@@ -318,7 +273,7 @@ mod tests {
       "---\ntitle: {{title}}\n---\n\n# {{title}}\n",
     )
     .unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
 
     assert!(template_create_note(
       app.clone(),

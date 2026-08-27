@@ -13,6 +13,8 @@ mod search;
 mod security;
 mod tasks;
 mod templates;
+#[cfg(test)]
+mod test_helpers;
 mod util;
 mod workspace;
 

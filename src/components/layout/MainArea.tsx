@@ -5,12 +5,8 @@ import { ROUTES } from '@/app/routes'
 import { TabBar } from './TabBar'
 import { EmptyState } from './EmptyState'
 import { ErrorBoundary } from './ErrorBoundary'
-import { NoteView } from '@/features/notes/NoteView'
-import { SearchView } from '@/components/search/SearchView'
-import { TasksView } from '@/components/tasks/TasksView'
-import { ProjectsView } from '@/components/projects/ProjectsView'
-import { CalendarView } from '@/components/calendar/CalendarView'
-import { TemplatesView } from '@/components/templates/TemplatesView'
+
+const NoteView = lazy(() => import('@/features/notes/NoteView').then(m => ({ default: m.NoteView })))
 
 const GraphView = lazy(() => import('@/components/graph/GraphView').then(m => ({ default: m.GraphView })))
 const InsightsView = lazy(() => import('@/components/insights/InsightsView').then(m => ({ default: m.InsightsView })))
@@ -19,6 +15,11 @@ const CanvasManager = lazy(() => import('@/components/canvas/CanvasManager').the
 const DatabaseView = lazy(() => import('@/components/database/DatabaseView').then(m => ({ default: m.DatabaseView })))
 const AttachmentsView = lazy(() => import('@/components/attachments/AttachmentsView').then(m => ({ default: m.AttachmentsView })))
 const PluginsView = lazy(() => import('@/components/plugins/PluginsView').then(m => ({ default: m.PluginsView })))
+const SearchView = lazy(() => import('@/components/search/SearchView').then(m => ({ default: m.SearchView })))
+const TasksView = lazy(() => import('@/components/tasks/TasksView').then(m => ({ default: m.TasksView })))
+const ProjectsView = lazy(() => import('@/components/projects/ProjectsView').then(m => ({ default: m.ProjectsView })))
+const CalendarView = lazy(() => import('@/components/calendar/CalendarView').then(m => ({ default: m.CalendarView })))
+const TemplatesView = lazy(() => import('@/components/templates/TemplatesView').then(m => ({ default: m.TemplatesView })))
 
 function LoadingIndicator() {
   const isDark = useWorkspaceStore((s) => s.theme) === 'dark'
@@ -167,6 +168,7 @@ export function MainArea() {
                 <button
                   onClick={() => useTabStore.getState().swapPanes()}
                   title="Swap panes"
+                  aria-label="Swap panes"
                   className={`rounded px-1.5 py-0.5 text-[11px] ${
                     isDark
                       ? 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200'
@@ -178,6 +180,7 @@ export function MainArea() {
                 <button
                   onClick={() => useTabStore.getState().setSplit(null)}
                   title="Close split pane"
+                  aria-label="Close split pane"
                   className={`rounded px-1.5 py-0.5 text-[11px] ${
                     isDark
                       ? 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-100'

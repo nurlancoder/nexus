@@ -54,6 +54,29 @@ pub fn is_note(name: &str) -> bool {
   ext == "md" || ext == "markdown"
 }
 
+/// Returns `true` if the filename has a text-markdown extension (`.md`, `.markdown`, or `.txt`).
+pub fn is_text_file(name: &str) -> bool {
+  let ext = Path::new(name)
+    .extension()
+    .map(|e| e.to_string_lossy().to_lowercase())
+    .unwrap_or_default();
+  ext == "md" || ext == "markdown" || ext == "txt"
+}
+
+/// Resolves a workspace ID for any path inside a workspace (longest prefix wins).
+/// This is the canonical workspace lookup — prefer this over inline SQL queries.
+pub fn resolve_workspace_id(conn: &Connection, path: &str) -> Result<i64, String> {
+  conn
+    .query_row(
+      "SELECT id FROM workspaces
+       WHERE ?1 LIKE path || '/%' OR path = ?1
+       ORDER BY LENGTH(path) DESC LIMIT 1",
+      params![path],
+      |r| r.get(0),
+    )
+    .map_err(|_| "Unknown workspace".to_string())
+}
+
 /// Strips a YAML frontmatter block (delimited by `---`) from the beginning of
 /// the content and returns the body. Zero-copy — returns a `&str` slice.
 pub fn body_after_frontmatter(content: &str) -> &str {
@@ -113,5 +136,85 @@ mod tests {
   fn body_after_frontmatter_no_frontmatter() {
     let input = "Just plain text";
     assert_eq!(body_after_frontmatter(input), "Just plain text");
+  }
+
+  #[test]
+  fn is_text_file_accepts_md_markdown_and_txt() {
+    assert!(is_text_file("note.md"));
+    assert!(is_text_file("note.markdown"));
+    assert!(is_text_file("readme.txt"));
+    assert!(!is_text_file("image.png"));
+    assert!(!is_text_file("data.csv"));
+  }
+
+  #[test]
+  fn is_text_file_handles_case_insensitive() {
+    assert!(is_text_file("NOTE.MD"));
+    assert!(is_text_file("file.TXT"));
+  }
+
+  #[test]
+  fn body_after_frontmatter_handles_empty_frontmatter() {
+    // Empty frontmatter (no content between --- markers) is not stripped — by design
+    let input = "---\n---\nBody";
+    assert_eq!(body_after_frontmatter(input), input);
+  }
+
+  #[test]
+  fn body_after_frontmatter_handles_unclosed() {
+    let input = "---\ntitle: X\nNo closing";
+    assert_eq!(body_after_frontmatter(input), input);
+  }
+
+  #[test]
+  fn slugify_preserves_unicode_alphanumerics() {
+    let input = "Əsas Qeydlər — Şərhlər";
+    let result = slugify(input);
+    assert!(result.contains('ə'), "missing ə, result: {:?}", result);
+    assert!(result.contains('Ş'), "missing Ş, result: {:?}", result);
+    assert!(result.contains('Q'), "missing Q, result: {:?}", result);
+  }
+
+  #[test]
+  fn is_note_handles_unicode_extensions() {
+    // Ensure no panic on unusual filenames
+    assert!(!is_note("readme"));
+    assert!(!is_note(""));
+  }
+
+  #[test]
+  fn unique_path_handles_unicode_dir_names() {
+    let dir = std::env::temp_dir().join(format!("nexus_util_unicode_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("Qeyd.md"), "").unwrap();
+    let p = unique_path(&dir, "Qeyd", ".md");
+    assert!(p.to_string_lossy().contains("Qeyd 2.md"));
+    std::fs::remove_dir_all(&dir).unwrap();
+  }
+
+  #[test]
+  fn resolve_workspace_id_finds_longest_prefix() {
+    let conn = rusqlite::Connection::open_in_memory().unwrap();
+    conn
+      .execute_batch(
+        "CREATE TABLE workspaces (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          path TEXT NOT NULL UNIQUE,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          last_opened_at TEXT
+        );
+        INSERT INTO workspaces (name, path) VALUES ('root', '/workspace');
+        INSERT INTO workspaces (name, path) VALUES ('sub', '/workspace/projects');",
+      )
+      .unwrap();
+    // Should match /workspace/projects (longer prefix)
+    let id = resolve_workspace_id(&conn, "/workspace/projects/note.md").unwrap();
+    assert_eq!(id, 2);
+    // Should match /workspace
+    let id = resolve_workspace_id(&conn, "/workspace/note.md").unwrap();
+    assert_eq!(id, 1);
+    // Unknown path
+    assert!(resolve_workspace_id(&conn, "/other/path").is_err());
   }
 }

@@ -16,8 +16,26 @@ export function Dialog({ open, onClose, title, children, maxWidth = 'max-w-md' }
     if (!open) return
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
+      if (e.key === 'Tab') {
+        const dialog = overlayRef.current?.querySelector<HTMLElement>('[role="dialog"]')
+        if (!dialog) return
+        const focusable = dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus() }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus() }
+        }
+      }
     }
     window.addEventListener('keydown', handleKey)
+    // Auto-focus the dialog on open
+    const dialog = overlayRef.current?.querySelector<HTMLElement>('[role="dialog"]')
+    dialog?.focus()
     return () => window.removeEventListener('keydown', handleKey)
   }, [open, onClose])
 
@@ -33,6 +51,9 @@ export function Dialog({ open, onClose, title, children, maxWidth = 'max-w-md' }
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         className={`relative ${maxWidth} w-full mx-4 rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 nexus-fade-in`}
       >
         {title && (

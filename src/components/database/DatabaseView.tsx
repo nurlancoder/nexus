@@ -16,19 +16,7 @@ import {
   discoverColumns,
   visibleColumns,
 } from '@/core/database/model'
-import type { FileNode } from '@/types'
-
-function collectDirs(nodes: FileNode[], base = ''): string[] {
-  const dirs: string[] = []
-  for (const n of nodes) {
-    if (n.isDir) {
-      const name = base ? `${base}/${n.name}` : n.name
-      dirs.push(name)
-      dirs.push(...collectDirs(n.children, name))
-    }
-  }
-  return dirs
-}
+import { collectDirs } from '@/lib/tree'
 
 export function DatabaseView() {
   const { theme, workspace, fileTree } = useWorkspaceStore()
@@ -255,6 +243,8 @@ export function DatabaseView() {
               {def.filterKey && (
                 <button
                   onClick={() => updateDef({ filterKey: null })}
+                  title="Clear property filter"
+                  aria-label="Clear property filter"
                   className={`absolute right-1 top-1/2 -translate-y-1/2 text-[10px] ${
                     isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-600'
                   }`}
@@ -273,6 +263,8 @@ export function DatabaseView() {
               {def.filterValue && (
                 <button
                   onClick={() => updateDef({ filterValue: null })}
+                  title="Clear value filter"
+                  aria-label="Clear value filter"
                   className={`absolute right-1 top-1/2 -translate-y-1/2 text-[10px] ${
                     isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-600'
                   }`}
@@ -300,6 +292,8 @@ export function DatabaseView() {
               onClick={() =>
                 updateDef({ sortDir: def.sortDir === 'desc' ? 'asc' : 'desc' })
               }
+              title="Toggle sort direction"
+              aria-label="Toggle sort direction"
               className={`rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
                 def.sortKey
                   ? isDark
@@ -309,7 +303,6 @@ export function DatabaseView() {
                     ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
                     : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300'
               }`}
-              title="Toggle sort direction"
             >
               {def.sortDir === 'desc' ? '↓ Desc' : '↑ Asc'}
             </button>

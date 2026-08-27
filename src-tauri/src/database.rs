@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection};
+use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -127,11 +127,7 @@ fn collect_rows(root: &Path, source_folders: &[String]) -> Result<Vec<DatabaseRo
     if n.is_dir {
       continue;
     }
-    let ext = Path::new(&n.name)
-      .extension()
-      .map(|e| e.to_string_lossy().to_lowercase())
-      .unwrap_or_default();
-    if ext != "md" && ext != "markdown" && ext != "txt" {
+    if !crate::util::is_text_file(&n.name) {
       continue;
     }
     if !source_folders.is_empty() {
@@ -161,10 +157,6 @@ fn collect_rows(root: &Path, source_folders: &[String]) -> Result<Vec<DatabaseRo
   Ok(rows)
 }
 
-fn find_workspace_id(conn: &Connection, path: &Path) -> Result<i64, String> {
-  crate::util::find_workspace_id(conn, path)
-}
-
 #[tauri::command]
 pub fn database_list<R: tauri::Runtime>(
   app: tauri::AppHandle<R>,
@@ -172,7 +164,7 @@ pub fn database_list<R: tauri::Runtime>(
 ) -> Result<Vec<DatabaseMeta>, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  let ws_id = find_workspace_id(&conn, Path::new(&workspace_path))?;
+  let ws_id = crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   let mut stmt = conn
     .prepare("SELECT id, name, definition FROM databases WHERE workspace_id = ?1 ORDER BY name")
     .map_err(|e| e.to_string())?;
@@ -206,7 +198,7 @@ pub fn database_save<R: tauri::Runtime>(
   }
   let db = app.state::<Database>();
   let conn = db.conn();
-  let ws_id = find_workspace_id(&conn, Path::new(&workspace_path))?;
+  let ws_id = crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   let json = serde_json::to_string(&definition).map_err(|e| e.to_string())?;
   conn
     .execute(
@@ -229,7 +221,7 @@ pub fn database_delete<R: tauri::Runtime>(
 ) -> Result<(), String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  let ws_id = find_workspace_id(&conn, Path::new(&workspace_path))?;
+  let ws_id = crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   conn
     .execute(
       "DELETE FROM databases WHERE workspace_id = ?1 AND name = ?2",
@@ -247,7 +239,7 @@ pub fn database_rows<R: tauri::Runtime>(
 ) -> Result<Vec<DatabaseRow>, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  find_workspace_id(&conn, Path::new(&workspace_path))?;
+  crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   collect_rows(Path::new(&workspace_path), &source_folders)
 }
 
@@ -304,33 +296,9 @@ mod tests {
   }
 
   fn setup_app() -> tauri::AppHandle<tauri::test::MockRuntime> {
-    use rusqlite::Connection;
-    use std::sync::Mutex;
-    let app = tauri::test::mock_app();
-    let conn = Connection::open_in_memory().unwrap();
-    conn
-      .execute_batch(
-        "CREATE TABLE workspaces (
-           id INTEGER PRIMARY KEY AUTOINCREMENT,
-           name TEXT NOT NULL,
-           path TEXT NOT NULL UNIQUE,
-           created_at TEXT NOT NULL DEFAULT (datetime('now')),
-           last_opened_at TEXT
-         );
-         CREATE TABLE databases (
-           id INTEGER PRIMARY KEY AUTOINCREMENT,
-           workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-           name TEXT NOT NULL,
-           definition TEXT NOT NULL DEFAULT '{}',
-           created_at TEXT NOT NULL DEFAULT (datetime('now')),
-           updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-           UNIQUE (workspace_id, name)
-         );
-         INSERT INTO workspaces (name, path) VALUES ('w', 'WS');",
-      )
-      .unwrap();
-    app.manage(Database(Mutex::new(conn)));
-    app.handle().clone()
+    let app = crate::test_helpers::mock_app();
+    crate::test_helpers::register_ws(&app, "WS");
+    app
   }
 
   #[test]

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useTabStore } from '@/stores/tabStore'
+import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 import { useTemplateStore } from '@/stores/templateStore'
 import { refreshTree } from '@/features/notes/actions'
 
@@ -64,15 +65,7 @@ export function TemplatesView() {
         <div className="flex w-56 shrink-0 flex-col overflow-auto border-r p-2" style={{ borderColor: isDark ? '#27272a' : '#e4e4e7' }}>
           {loading && <p className={`p-2 text-[12px] ${mutedText}`}>Loading…</p>}
           {!loading && templates.length === 0 && (
-            <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
-              <div className="text-3xl opacity-40">📄</div>
-              <p className={`text-[12px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                No templates found
-              </p>
-              <p className={`text-[11px] ${mutedText}`}>
-                Add .md files to your `07-Templates` folder to get started.
-              </p>
-            </div>
+            <EmptyStatePanel icon="📄" heading="No templates found" description="Add .md files to your `07-Templates` folder to get started." />
           )}
           {templates.map((t) => (
             <button

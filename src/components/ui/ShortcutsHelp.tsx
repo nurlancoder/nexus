@@ -80,6 +80,9 @@ export function ShortcutsHelp({ open, onClose }: ShortcutsHelpProps) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div className="relative mx-4 max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl nexus-fade-in dark:border-zinc-700 dark:bg-zinc-900">
@@ -89,6 +92,8 @@ export function ShortcutsHelp({ open, onClose }: ShortcutsHelpProps) {
           </h2>
           <button
             onClick={onClose}
+            title="Close"
+            aria-label="Close shortcuts"
             className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">

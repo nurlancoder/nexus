@@ -1,4 +1,3 @@
-use rusqlite::params;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
@@ -61,10 +60,6 @@ pub struct InsightsReport {
   pub totals: InsightsTotals,
 }
 
-fn body_after_frontmatter(content: &str) -> String {
-  crate::util::body_after_frontmatter(content).to_string()
-}
-
 pub fn health_score(body: &str, has_frontmatter: bool, links_out: usize) -> i64 {
   let words = body.split_whitespace().count() as i64;
   let mut s: i64 = 40;
@@ -89,10 +84,6 @@ pub fn health_score(body: &str, has_frontmatter: bool, links_out: usize) -> i64 
   s.clamp(0, 100)
 }
 
-fn is_note(name: &str) -> bool {
-  crate::util::is_note(name)
-}
-
 pub fn build_report(root: &Path) -> Result<InsightsReport, String> {
   let tree = scan_dir_public(root)?;
   let mut flat = Vec::new();
@@ -106,7 +97,7 @@ pub fn build_report(root: &Path) -> Result<InsightsReport, String> {
   }
   let mut notes: Vec<NoteData> = Vec::new();
   for node in flat {
-    if node.is_dir || !is_note(&node.name) {
+    if node.is_dir || !crate::util::is_note(&node.name) {
       continue;
     }
     let Ok(raw) = std::fs::read_to_string(&node.path) else {
@@ -116,7 +107,7 @@ pub fn build_report(root: &Path) -> Result<InsightsReport, String> {
     notes.push(NoteData {
       path: node.path.clone(),
       title,
-      body: body_after_frontmatter(&raw),
+      body: crate::util::body_after_frontmatter(&raw).to_string(),
       raw,
     });
   }
@@ -229,13 +220,7 @@ pub fn insights_report(
   {
     let db = app.state::<Database>();
     let conn = db.conn();
-    let _: i64 = conn
-      .query_row(
-        "SELECT id FROM workspaces WHERE path = ?1",
-        params![workspace_path],
-        |r| r.get(0),
-      )
-      .map_err(|_| "Unknown workspace")?;
+    crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   }
   build_report(Path::new(&workspace_path))
 }

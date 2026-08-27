@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useTabStore } from '@/stores/tabStore'
 import { useTaskStore } from '@/stores/taskStore'
+import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 import { groupTasks, filterTasks, sectionLabel, todayString } from '@/core/tasks/model'
 
 const PRIORITY_STYLE: Record<string, string> = {
@@ -92,12 +93,7 @@ export function TasksView() {
         )}
         {error && <p className="text-[13px] text-red-500">{error}</p>}
         {!loading && !error && visible.length === 0 && (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <div className="text-5xl opacity-40">☑</div>
-            <p className={`text-[13px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-              No tasks found. Add `- [ ]` checkboxes to any note.
-            </p>
-          </div>
+          <EmptyStatePanel icon="☑" heading="No tasks found" description='Add `- [ ]` checkboxes to any note.' />
         )}
         {groups.map(([section, items]) => (
           <div
@@ -157,6 +153,7 @@ export function TasksView() {
                             : 'border-zinc-400 hover:border-blue-500 hover:bg-blue-50'
                       }`}
                       title={t.done ? 'Mark as open' : 'Mark as done'}
+                      aria-label={t.done ? 'Mark as open' : 'Mark as done'}
                     >
                       {t.done ? '✓' : ''}
                     </button>

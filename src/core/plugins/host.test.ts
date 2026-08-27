@@ -384,8 +384,9 @@ describe('DoS / message flooding', () => {
     expect(totalElapsed).toBeLessThan(7000)
   }, 10000)
 
-  it('flooding nx.log() does not crash the host and all messages are processed', async () => {
+  it('flooding nx.log() does not crash the host and messages are capped', async () => {
     const COUNT = 100_000
+    const MAX_LOG_ENTRIES = 5000
     const start = Date.now()
 
     clearLogs()
@@ -400,7 +401,7 @@ describe('DoS / message flooding', () => {
 
     const allLogs = pluginLogs()
     const floodLogs = allLogs.filter((l) => l.startsWith('[flood-plugin] flood-'))
-    expect(floodLogs.length).toBe(COUNT)
+    expect(floodLogs.length).toBe(MAX_LOG_ENTRIES)
 
     clearLogs()
     expect(elapsed).toBeLessThan(30000)

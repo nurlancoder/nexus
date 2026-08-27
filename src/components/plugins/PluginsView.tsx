@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { usePluginStore } from '@/stores/pluginStore'
+import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 
 const API_DOCS = [
   'nx.registerCommand({ id, title, run }) — command palette entry',
@@ -69,6 +70,18 @@ function PluginCard({ s, isDark }: { s: { name: string; enabled: boolean; error?
         >
           {s.enabled ? 'Enabled' : 'Disabled'}
         </button>
+        {s.enabled && (
+          <button
+            onClick={() => usePluginStore.getState().terminate(s.name)}
+            title="Force stop plugin"
+            aria-label={`Force stop ${s.name}`}
+            className={`shrink-0 rounded px-1.5 py-1 text-[10px] transition-colors ${
+              isDark ? 'text-zinc-500 hover:text-red-400' : 'text-zinc-400 hover:text-red-600'
+            }`}
+          >
+            ■
+          </button>
+        )}
       </div>
     </div>
   )
@@ -121,15 +134,7 @@ export function PluginsView() {
           <>
             <div className="space-y-2">
               {statuses.length === 0 && !loading && (
-                <div className="flex flex-col items-center gap-2 py-8 text-center">
-                  <div className="text-4xl opacity-40">🧩</div>
-                  <p className={`text-[13px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                    No plugins found
-                  </p>
-                  <p className={`max-w-xs text-[12px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                    Add a .js file to the plugins/ folder in your vault to extend Nexus with custom commands and hooks.
-                  </p>
-                </div>
+                <EmptyStatePanel icon="🧩" heading="No plugins found" description="Add a .js file to the plugins/ folder in your vault to extend Nexus with custom commands and hooks." />
               )}
               {statuses.map((s) => (
                 <PluginCard key={s.name} s={s} isDark={isDark} />

@@ -83,6 +83,7 @@ function PropertyRow({
               onMouseDown={(e) => e.preventDefault()}
               onClick={onCancel}
               title="Cancel"
+              aria-label="Cancel edit"
               className={`text-[10px] ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-700'}`}
             >
               ✕
@@ -101,6 +102,7 @@ function PropertyRow({
             <button
               onClick={onDelete}
               title="Delete property"
+              aria-label="Delete property"
               className={`hidden shrink-0 text-[10px] group-hover:block ${isDark ? 'text-zinc-600 hover:text-red-400' : 'text-zinc-400 hover:text-red-600'}`}
             >
               🗑
@@ -269,6 +271,8 @@ export function Inspector() {
         </span>
         <button
           onClick={toggleInspector}
+          title="Close inspector"
+          aria-label="Close inspector"
           className={`text-[12px] ${
             isDark ? 'text-zinc-500 hover:text-zinc-200' : 'text-zinc-400 hover:text-zinc-800'
           }`}
@@ -569,6 +573,8 @@ export function Inspector() {
         <span>v0.1.0</span>
         <button
           onClick={() => useCommandPaletteStore.getState().open()}
+          title="Open command palette"
+          aria-label="Open command palette"
           className="hover:opacity-80"
         >
           ⌘K

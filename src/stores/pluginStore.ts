@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { loadPlugins, setPluginDisabled, type PluginStatus } from '@/core/plugins/host'
+import { loadPlugins, terminatePlugin, setPluginDisabled, type PluginStatus } from '@/core/plugins/host'
 import { useWorkspaceStore } from './workspaceStore'
 
 interface PluginsState {
@@ -7,9 +7,10 @@ interface PluginsState {
   loading: boolean
   reload: () => Promise<void>
   toggle: (name: string) => Promise<void>
+  terminate: (name: string) => void
 }
 
-export const usePluginStore = create<PluginsState>((set) => ({
+export const usePluginStore = create<PluginsState>((set, get) => ({
   statuses: [],
   loading: false,
 
@@ -35,5 +36,14 @@ export const usePluginStore = create<PluginsState>((set) => ({
     if (!current) return
     setPluginDisabled(name, current.enabled)
     await usePluginStore.getState().reload()
+  },
+
+  terminate: (name) => {
+    terminatePlugin(name)
+    set({
+      statuses: get().statuses.map((s) =>
+        s.name === name ? { ...s, error: 'Terminated by user' } : s,
+      ),
+    })
   },
 }))

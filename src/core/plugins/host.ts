@@ -71,6 +71,7 @@ type WorkerToHostMessage =
 
 const DISABLED_KEY = 'nexus.plugins.disabled'
 const COMMAND_PREFIX = 'plugin:'
+const MAX_LOG_ENTRIES = 5000
 const logs: string[] = []
 
 export function clearLogs(): void {
@@ -228,6 +229,7 @@ export function executePlugin(
 
         case 'log':
           logs.push(`[${pluginName}] ${msg.message}`)
+          if (logs.length > MAX_LOG_ENTRIES) logs.splice(0, logs.length - MAX_LOG_ENTRIES)
           break
       }
     })

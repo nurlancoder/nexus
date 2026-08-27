@@ -6,14 +6,6 @@ use crate::security;
 
 pub const EMPTY_CANVAS: &str = r#"{"nodes":[],"edges":[],"groups":[],"viewport":{"x":0,"y":0,"zoom":1}}"#;
 
-fn slugify(name: &str) -> String {
-  crate::util::slugify(name)
-}
-
-fn unique_path(dir: &Path, base: &str, suffix: &str) -> PathBuf {
-  crate::util::unique_path(dir, base, suffix)
-}
-
 #[tauri::command]
 pub fn canvas_create<R: tauri::Runtime>(app: tauri::AppHandle<R>, parent: String, title: String) -> Result<String, String> {
   {
@@ -28,9 +20,9 @@ pub fn canvas_create<R: tauri::Runtime>(app: tauri::AppHandle<R>, parent: String
   let base = if clean.is_empty() {
     "Untitled".to_string()
   } else {
-    slugify(clean)
+    crate::util::slugify(clean)
   };
-  let path = unique_path(dir, &base, ".canvas");
+  let path = crate::util::unique_path(dir, &base, ".canvas");
   std::fs::write(&path, EMPTY_CANVAS).map_err(|e| e.to_string())?;
   Ok(path.to_string_lossy().to_string())
 }
@@ -68,39 +60,12 @@ pub fn canvas_load<R: tauri::Runtime>(app: tauri::AppHandle<R>, path: String) ->
 mod tests {
   use super::*;
 
-  fn mock_app() -> tauri::AppHandle<tauri::test::MockRuntime> {
-    let app = tauri::test::mock_app();
-    let conn = rusqlite::Connection::open_in_memory().unwrap();
-    conn.execute_batch(
-      "CREATE TABLE workspaces (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        path TEXT NOT NULL UNIQUE,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        last_opened_at TEXT
-      );",
-    )
-    .unwrap();
-    app.manage(crate::db::Database(std::sync::Mutex::new(conn)));
-    app.handle().clone()
-  }
-
-  fn register_ws(app: &tauri::AppHandle<tauri::test::MockRuntime>, path: &str) {
-    let db = app.state::<crate::db::Database>();
-    let conn = db.conn();
-    conn.execute(
-      "INSERT INTO workspaces (name, path) VALUES (?1, ?2)",
-      rusqlite::params![std::path::Path::new(path).file_name().unwrap().to_str().unwrap(), path],
-    )
-    .unwrap();
-  }
-
   #[test]
   fn canvas_create_writes_empty_and_avoids_collision() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_canvas_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
 
     let p1 = canvas_create(app.clone(), dir.to_string_lossy().to_string(), "My Canvas".into()).unwrap();
     let p2 = canvas_create(app, dir.to_string_lossy().to_string(), "My Canvas".into()).unwrap();
@@ -114,10 +79,10 @@ mod tests {
 
   #[test]
   fn canvas_create_rejects_parent_outside_workspace() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_cc_val_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
 
     assert!(canvas_create(app.clone(), dir.to_string_lossy().to_string(), "Good".into()).is_ok());
 
@@ -131,10 +96,10 @@ mod tests {
 
   #[test]
   fn canvas_save_load_roundtrip() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_canvas2_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
     let path = dir.join("c.canvas");
 
     canvas_save(

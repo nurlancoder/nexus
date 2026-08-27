@@ -129,11 +129,7 @@ fn index_files(app: &AppHandle, root: &Path) -> Result<usize, String> {
     if n.is_dir {
       continue;
     }
-    let ext = Path::new(&n.name)
-      .extension()
-      .map(|e| e.to_string_lossy().to_lowercase())
-      .unwrap_or_default();
-    if ext != "md" && ext != "markdown" && ext != "txt" {
+    if !crate::util::is_text_file(&n.name) {
       continue;
     }
     let meta = std::fs::metadata(&n.path).map_err(|e| e.to_string())?;
@@ -446,55 +442,6 @@ mod tests {
     assert!(v.get("is_dir").is_none());
   }
 
-  fn mock_app() -> tauri::AppHandle<tauri::test::MockRuntime> {
-    let app = tauri::test::mock_app();
-    let conn = rusqlite::Connection::open_in_memory().unwrap();
-    conn.execute_batch(
-      "CREATE TABLE workspaces (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        path TEXT NOT NULL UNIQUE,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        last_opened_at TEXT
-      );
-      CREATE TABLE files (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-        path TEXT NOT NULL,
-        title TEXT,
-        type TEXT NOT NULL DEFAULT 'note',
-        size INTEGER NOT NULL DEFAULT 0,
-        modified_at TEXT,
-        indexed_at TEXT NOT NULL DEFAULT (datetime('now')),
-        UNIQUE (workspace_id, path)
-      );
-      CREATE TABLE note_versions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-        path TEXT NOT NULL,
-        content TEXT NOT NULL,
-        size INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-      CREATE VIRTUAL TABLE IF NOT EXISTS note_index USING fts5(
-        title, content, path UNINDEXED, workspace_id UNINDEXED
-      );",
-    )
-    .unwrap();
-    app.manage(crate::db::Database(std::sync::Mutex::new(conn)));
-    app.handle().clone()
-  }
-
-  fn register_ws(app: &tauri::AppHandle<tauri::test::MockRuntime>, path: &str) {
-    let db = app.state::<crate::db::Database>();
-    let conn = db.conn();
-    conn.execute(
-      "INSERT INTO workspaces (name, path) VALUES (?1, ?2)",
-      params![std::path::Path::new(path).file_name().unwrap().to_str().unwrap(), path],
-    )
-    .unwrap();
-  }
-
   #[test]
   fn scan_dir_builds_tree_and_skips_hidden() {
     let dir = std::env::temp_dir().join(format!("nexus_test_scan_{}", std::process::id()));
@@ -519,10 +466,10 @@ mod tests {
 
   #[test]
   fn note_write_is_atomic_roundtrip() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_write_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
     let path = dir.join("nested/note.md");
     note_write(
       app.clone(),
@@ -537,10 +484,10 @@ mod tests {
 
   #[test]
   fn note_create_writes_frontmatter_and_avoids_collision() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_create_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
 
     let p1 = note_create(app.clone(), dir.to_string_lossy().to_string(), "My Note".into()).unwrap();
     let p2 = note_create(app, dir.to_string_lossy().to_string(), "My Note".into()).unwrap();
@@ -558,10 +505,10 @@ mod tests {
 
   #[test]
   fn workspace_tree_rejects_path_outside_workspace() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_wstree_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
 
     // Inside workspace — ok
     assert!(workspace_tree(app.clone(), dir.to_string_lossy().to_string()).is_ok());
@@ -575,10 +522,10 @@ mod tests {
 
   #[test]
   fn note_create_rejects_parent_outside_workspace() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_nc_val_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
 
     assert!(note_create(app.clone(), dir.to_string_lossy().to_string(), "Good".into()).is_ok());
 
@@ -592,10 +539,10 @@ mod tests {
 
   #[test]
   fn note_read_rejects_path_traversal_outside_workspace() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_read_sec_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
     std::fs::write(dir.join("ok.md"), "safe content").unwrap();
 
     // Valid path — reads successfully
@@ -618,10 +565,10 @@ mod tests {
 
   #[test]
   fn note_write_rejects_path_traversal_outside_workspace() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_write_sec_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
 
     // Valid path — writes successfully
     let ok_path = dir.join("ok.md").to_string_lossy().to_string();
@@ -653,8 +600,8 @@ mod tests {
     std::fs::create_dir_all(ws.join("sub")).unwrap();
     std::fs::create_dir_all(&outside).unwrap();
 
-    let app = mock_app();
-    register_ws(&app, &ws.to_string_lossy());
+    let app = crate::test_helpers::mock_app();
+    crate::test_helpers::register_ws(&app, &ws.to_string_lossy());
 
     // Create symlink inside workspace pointing outside
     #[cfg(unix)]
@@ -676,8 +623,8 @@ mod tests {
     std::fs::create_dir_all(&outside).unwrap();
     std::fs::write(outside.join("secret.txt"), "stolen").unwrap();
 
-    let app = mock_app();
-    register_ws(&app, &ws.to_string_lossy());
+    let app = crate::test_helpers::mock_app();
+    crate::test_helpers::register_ws(&app, &ws.to_string_lossy());
 
     #[cfg(unix)]
     std::os::unix::fs::symlink(&outside, ws.join("sub/escape")).unwrap();
@@ -690,10 +637,10 @@ mod tests {
 
   #[test]
   fn note_duplicate_and_rename_work() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_crud_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
     let path = note_create(app.clone(), dir.to_string_lossy().to_string(), "Origin".into()).unwrap();
 
     let dup = note_duplicate(app.clone(), path.clone()).unwrap();
@@ -736,6 +683,58 @@ mod tests {
     assert!(validate_workspace_create(parent, "a/b").is_err());
     assert!(validate_workspace_create(parent, "a\\b").is_err());
     assert!(validate_workspace_create(parent, "valid-name").is_ok());
+
+    std::fs::remove_dir_all(&dir).unwrap();
+  }
+
+  #[test]
+  fn scan_dir_handles_unicode_file_names() {
+    let dir = std::env::temp_dir().join(format!("nexus_test_unicode_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    // Azerbaijani characters: ə, ö, ü, ş, ç, ğ, ı
+    std::fs::write(dir.join("Əsas Qeydlər.md"), "# Əsas").unwrap();
+    std::fs::write(dir.join("Şərhlər.md"), "# Şərhlər").unwrap();
+    std::fs::write(dir.join("Günlük.md"), "# Günlük").unwrap();
+
+    let tree = scan_dir(&dir).unwrap();
+    let names: Vec<&str> = tree.iter().map(|n| n.name.as_str()).collect();
+    assert_eq!(names.len(), 3);
+    assert!(names.contains(&"Əsas Qeydlər.md"));
+    assert!(names.contains(&"Şərhlər.md"));
+    assert!(names.contains(&"Günlük.md"));
+
+    std::fs::remove_dir_all(&dir).unwrap();
+  }
+
+  #[test]
+  fn note_create_and_read_unicode_content() {
+    let app = crate::test_helpers::mock_app();
+    let dir = std::env::temp_dir().join(format!("nexus_test_unicode_note_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
+
+    let path = note_create(
+      app.clone(),
+      dir.to_string_lossy().to_string(),
+      "Azərbaycan".into(),
+    )
+    .unwrap();
+    assert!(path.contains("Azərbaycan"));
+
+    let content = note_read(app.clone(), path.clone()).unwrap();
+    assert!(content.contains("Azərbaycan"));
+    assert!(content.contains("title: Azərbaycan"));
+
+    std::fs::remove_dir_all(&dir).unwrap();
+  }
+
+  #[test]
+  fn scan_dir_handles_empty_directory() {
+    let dir = std::env::temp_dir().join(format!("nexus_test_empty_dir_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+
+    let tree = scan_dir(&dir).unwrap();
+    assert!(tree.is_empty());
 
     std::fs::remove_dir_all(&dir).unwrap();
   }

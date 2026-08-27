@@ -4,8 +4,13 @@ import { useNoteStore } from '@/stores/noteStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 
 export function TabBar() {
-  const { tabs, activeTabId, splitTabId, activateTab, closeTab, cycleTab, toggleSplitTab } =
-    useTabStore()
+  const tabs = useTabStore((s) => s.tabs)
+  const activeTabId = useTabStore((s) => s.activeTabId)
+  const splitTabId = useTabStore((s) => s.splitTabId)
+  const activateTab = useTabStore((s) => s.activateTab)
+  const closeTab = useTabStore((s) => s.closeTab)
+  const cycleTab = useTabStore((s) => s.cycleTab)
+  const toggleSplitTab = useTabStore((s) => s.toggleSplitTab)
   const docs = useNoteStore((s) => s.docs)
   const theme = useWorkspaceStore((s) => s.theme)
   const isDark = theme === 'dark'

@@ -34,15 +34,7 @@ fn insert_version(
 }
 
 fn find_workspace_for_note(conn: &rusqlite::Connection, path: &str) -> Result<i64, String> {
-  conn
-    .query_row(
-      "SELECT id FROM workspaces
-       WHERE ?1 LIKE path || '/%' OR path = ?1
-       ORDER BY LENGTH(path) DESC LIMIT 1",
-      params![path],
-      |r| r.get(0),
-    )
-    .map_err(|_| "Unknown workspace".to_string())
+  crate::util::resolve_workspace_id(conn, path)
 }
 
 /// Snapshot on save, throttled: only when the newest version differs from the

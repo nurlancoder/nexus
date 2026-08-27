@@ -119,6 +119,8 @@ export function ProjectsView() {
                         .toggle(t.path, t.line, !t.done)
                         .then(() => useProjectStore.getState().refreshDetail())
                     }}
+                    title={t.done ? 'Mark as open' : 'Mark as done'}
+                    aria-label={t.done ? 'Mark as open' : 'Mark as done'}
                     className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] leading-none ${
                       t.done
                         ? 'border-green-500 bg-green-500 text-white'

@@ -57,6 +57,9 @@ export function CommandPalette() {
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[15vh] nexus-fade-in"
       onMouseDown={close}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
     >
       <div
         key={nonce}
@@ -91,6 +94,10 @@ export function CommandPalette() {
               }
             }}
             placeholder="Search commands..."
+            role="combobox"
+            aria-expanded={results.length > 0}
+            aria-controls="command-palette-listbox"
+            aria-activedescendant={results[selected] ? `cmd-${results[selected].id}` : undefined}
             className={`flex-1 bg-transparent py-3 text-sm outline-none ${
               isDark
                 ? 'text-zinc-100 placeholder:text-zinc-500'
@@ -98,7 +105,7 @@ export function CommandPalette() {
             }`}
           />
         </div>
-        <ul className="max-h-72 overflow-y-auto p-1.5">
+        <ul id="command-palette-listbox" role="listbox" className="max-h-72 overflow-y-auto p-1.5">
           {results.length === 0 && (
             <li className="flex flex-col items-center gap-1 py-6 text-center">
               <span className={`text-[13px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
@@ -110,7 +117,7 @@ export function CommandPalette() {
             </li>
           )}
           {results.map((cmd, i) => (
-            <li key={cmd.id}>
+            <li key={cmd.id} role="option" id={`cmd-${cmd.id}`} aria-selected={i === selected}>
               <button
                 onMouseEnter={() => setSelected(i)}
                 onClick={() => {

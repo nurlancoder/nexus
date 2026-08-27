@@ -44,16 +44,6 @@ fn is_checkbox_line(trimmed: &str) -> Option<(bool, &str)> {
   Some((done, text))
 }
 
-fn body_after_frontmatter(content: &str) -> &str {
-  if let Some(rest) = content.strip_prefix("---\n") {
-    if let Some(end) = rest.find("\n---") {
-      let after = &rest[end + 4..];
-      return after.strip_prefix('\n').unwrap_or(after);
-    }
-  }
-  content
-}
-
 fn find_iso_date(s: &str) -> Option<(usize, usize)> {
   let b = s.as_bytes();
   if b.len() < 10 {
@@ -166,7 +156,7 @@ fn extract_tags(text: &str) -> Vec<String> {
 }
 
 pub fn parse_tasks(content: &str) -> Vec<(usize, bool, String)> {
-  let body = body_after_frontmatter(content);
+  let body = crate::util::body_after_frontmatter(content);
   let mut out = Vec::new();
   let offset = content.len() - body.len();
   for (line_no, line) in (content[..offset].matches('\n').count()..).zip(body.lines()) {
@@ -187,11 +177,7 @@ pub fn collect_tasks(root: &Path) -> Result<Vec<Task>, String> {
     if node.is_dir {
       continue;
     }
-    let ext = Path::new(&node.name)
-      .extension()
-      .map(|e| e.to_string_lossy().to_lowercase())
-      .unwrap_or_default();
-    if ext != "md" && ext != "markdown" && ext != "txt" {
+    if !crate::util::is_text_file(&node.name) {
       continue;
     }
     let content = match std::fs::read_to_string(&node.path) {
@@ -225,10 +211,6 @@ pub fn collect_tasks(root: &Path) -> Result<Vec<Task>, String> {
   Ok(tasks)
 }
 
-fn find_workspace_id(conn: &rusqlite::Connection, path: &Path) -> Option<i64> {
-  crate::util::find_workspace_id(conn, path).ok()
-}
-
 #[tauri::command]
 pub fn task_scan<R: tauri::Runtime>(
   app: tauri::AppHandle<R>,
@@ -236,9 +218,7 @@ pub fn task_scan<R: tauri::Runtime>(
 ) -> Result<Vec<Task>, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  if find_workspace_id(&conn, Path::new(&workspace_path)).is_none() {
-    return Err("Unknown workspace".into());
-  }
+  crate::util::find_workspace_id(&conn, Path::new(&workspace_path))?;
   collect_tasks(Path::new(&workspace_path))
 }
 
@@ -285,33 +265,6 @@ pub fn task_toggle<R: tauri::Runtime>(
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  fn mock_app() -> tauri::AppHandle<tauri::test::MockRuntime> {
-    let app = tauri::test::mock_app();
-    let conn = rusqlite::Connection::open_in_memory().unwrap();
-    conn.execute_batch(
-      "CREATE TABLE workspaces (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        path TEXT NOT NULL UNIQUE,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        last_opened_at TEXT
-      );",
-    )
-    .unwrap();
-    app.manage(crate::db::Database(std::sync::Mutex::new(conn)));
-    app.handle().clone()
-  }
-
-  fn register_ws(app: &tauri::AppHandle<tauri::test::MockRuntime>, path: &str) {
-    let db = app.state::<crate::db::Database>();
-    let conn = db.conn();
-    conn.execute(
-      "INSERT INTO workspaces (name, path) VALUES (?1, ?2)",
-      rusqlite::params![std::path::Path::new(path).file_name().unwrap().to_str().unwrap(), path],
-    )
-    .unwrap();
-  }
 
   #[test]
   fn task_serializes_camel_case_for_frontend() {
@@ -402,10 +355,10 @@ mod tests {
 
   #[test]
   fn toggle_flips_only_target_line() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_toggle_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
     let path = dir.join("t.md");
     std::fs::write(&path, "# T\n- [ ] a\n- [ ] b\n").unwrap();
 
@@ -425,15 +378,37 @@ mod tests {
 
   #[test]
   fn toggle_rejects_non_checkbox_line() {
-    let app = mock_app();
+    let app = crate::test_helpers::mock_app();
     let dir = std::env::temp_dir().join(format!("nexus_test_toggle_bad_{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    register_ws(&app, &dir.to_string_lossy());
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
     let path = dir.join("t.md");
     std::fs::write(&path, "# T\nplain\n").unwrap();
 
     let err = task_toggle(app, path.to_string_lossy().to_string(), 1, true);
     assert!(err.is_err());
+
+    std::fs::remove_dir_all(&dir).unwrap();
+  }
+
+  #[test]
+  fn parses_tasks_with_unicode_content() {
+    let content = "---\ntitle: Azərbaycan\n---\n\n# Görevlər\n\n- [ ] Azərbaycan dilini öyrən\n- [x] Kitab oxu #təhsil\n";
+    let tasks = parse_tasks(content);
+    assert_eq!(tasks.len(), 2);
+    assert!(!tasks[0].1);
+    assert!(tasks[1].1);
+    assert_eq!(tasks[0].2, "Azərbaycan dilini öyrən");
+    assert!(tasks[1].2.contains("təhsil"));
+  }
+
+  #[test]
+  fn collect_tasks_handles_empty_workspace() {
+    let dir = std::env::temp_dir().join(format!("nexus_test_tasks_empty_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+
+    let tasks = collect_tasks(&dir).unwrap();
+    assert!(tasks.is_empty());
 
     std::fs::remove_dir_all(&dir).unwrap();
   }

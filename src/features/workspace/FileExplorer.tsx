@@ -45,22 +45,20 @@ function fileIcon(name: string, isDir: boolean): string {
 interface TreeItemProps {
   node: FileNode
   depth: number
+  activePath: string | null
+  onOpenNote: (path: string, name: string) => void
+  onOpenCanvas: (path: string, name: string) => void
   onContextMenu: (e: React.MouseEvent, node: FileNode) => void
 }
 
-function TreeItem({ node, depth, onContextMenu }: TreeItemProps) {
+function TreeItem({ node, depth, activePath, onOpenNote, onOpenCanvas, onContextMenu }: TreeItemProps) {
   const theme = useWorkspaceStore((s) => s.theme)
   const [expanded, setExpanded] = useState(node.isDir && depth === 0)
-  const openNote = useTabStore((s) => s.openNote)
-  const openCanvas = useTabStore((s) => s.openCanvas)
-  const activeTabId = useTabStore((s) => s.activeTabId)
-  const tabs = useTabStore((s) => s.tabs)
   const isDark = theme === 'dark'
 
   const isMarkdown = !node.isDir && MARKDOWN_RE.test(node.name)
   const isCanvas = !node.isDir && CANVAS_RE.test(node.name)
-  const activeTab = tabs.find((t) => t.id === activeTabId)
-  const isActive = !node.isDir && (node.path === activeTab?.notePath || node.path === activeTab?.canvasPath)
+  const isActive = !node.isDir && node.path === activePath
 
   return (
     <div>
@@ -68,8 +66,8 @@ function TreeItem({ node, depth, onContextMenu }: TreeItemProps) {
         onContextMenu={(e) => onContextMenu(e, node)}
         onClick={() => {
           if (node.isDir) setExpanded((e) => !e)
-          else if (isMarkdown) openNote(node.path, node.name.replace(MARKDOWN_RE, ''))
-          else if (isCanvas) openCanvas(node.path, node.name.replace(CANVAS_RE, ''))
+          else if (isMarkdown) onOpenNote(node.path, node.name.replace(MARKDOWN_RE, ''))
+          else if (isCanvas) onOpenCanvas(node.path, node.name.replace(CANVAS_RE, ''))
         }}
         className={`flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-[12px] transition-all duration-100 ${
           isActive
@@ -97,7 +95,7 @@ function TreeItem({ node, depth, onContextMenu }: TreeItemProps) {
       {node.isDir &&
         expanded &&
         node.children.map((child) => (
-          <TreeItem key={child.path} node={child} depth={depth + 1} onContextMenu={onContextMenu} />
+          <TreeItem key={child.path} node={child} depth={depth + 1} activePath={activePath} onOpenNote={onOpenNote} onOpenCanvas={onOpenCanvas} onContextMenu={onContextMenu} />
         ))}
     </div>
   )
@@ -108,6 +106,13 @@ export function FileExplorer() {
   const theme = useWorkspaceStore((s) => s.theme)
   const isDark = theme === 'dark'
   const [menu, setMenu] = useState<MenuState | null>(null)
+
+  const activeTabId = useTabStore((s) => s.activeTabId)
+  const tabs = useTabStore((s) => s.tabs)
+  const openNote = useTabStore((s) => s.openNote)
+  const openCanvas = useTabStore((s) => s.openCanvas)
+  const activeTab = tabs.find((t) => t.id === activeTabId)
+  const activePath = activeTab?.notePath ?? activeTab?.canvasPath ?? null
 
   useEffect(() => {
     const close = () => setMenu(null)
@@ -228,7 +233,7 @@ export function FileExplorer() {
     <div>
       <div className="space-y-0.5">
         {fileTree.map((node) => (
-          <TreeItem key={node.path} node={node} depth={0} onContextMenu={onContextMenu} />
+          <TreeItem key={node.path} node={node} depth={0} activePath={activePath} onOpenNote={openNote} onOpenCanvas={openCanvas} onContextMenu={onContextMenu} />
         ))}
       </div>
 

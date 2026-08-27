@@ -23,11 +23,7 @@ pub struct DailyNoteInfo {
 
 fn is_daily_note(name: &str) -> Option<String> {
   let stem = Path::new(name).file_stem()?.to_string_lossy().to_string();
-  let ext = Path::new(name)
-    .extension()
-    .map(|e| e.to_string_lossy().to_lowercase())
-    .unwrap_or_default();
-  if ext != "md" && ext != "markdown" {
+  if !crate::util::is_note(name) {
     return None;
   }
   if stem.len() == 10
@@ -74,11 +70,7 @@ pub fn collect_events(workspace_path: &str, year: i32, month: u32) -> Result<Vec
     if node.is_dir {
       continue;
     }
-    let ext = Path::new(&node.name)
-      .extension()
-      .map(|e| e.to_string_lossy().to_lowercase())
-      .unwrap_or_default();
-    if ext != "md" && ext != "markdown" {
+    if !crate::util::is_note(&node.name) {
       continue;
     }
     let content = match std::fs::read_to_string(&node.path) {
@@ -179,16 +171,7 @@ pub fn calendar_events<R: tauri::Runtime>(
 ) -> Result<Vec<CalendarEvent>, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  let found: Option<i64> = conn
-    .query_row(
-      "SELECT id FROM workspaces WHERE path = ?1",
-      rusqlite::params![workspace_path],
-      |r| r.get(0),
-    )
-    .ok();
-  if found.is_none() {
-    return Err("Unknown workspace".into());
-  }
+  crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   if !(1..=12).contains(&month) {
     return Err("Invalid month".into());
   }
@@ -293,29 +276,18 @@ mod tests {
   #[test]
   fn open_daily_note_rejects_unknown_workspace() {
     let app = {
-      use rusqlite::Connection;
-      use std::sync::Mutex;
-      let app = tauri::test::mock_app();
-      let conn = Connection::open_in_memory().unwrap();
-      conn
-        .execute_batch(
-          "CREATE TABLE workspaces (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            path TEXT NOT NULL UNIQUE,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            last_opened_at TEXT
-          );",
-        )
-        .unwrap();
-      conn
-        .execute(
-          "INSERT INTO workspaces (name, path) VALUES ('Known', '/tmp/nexus_known_ws')",
-          [],
-        )
-        .unwrap();
-      app.manage(crate::db::Database(Mutex::new(conn)));
-      app.handle().clone()
+      let app = crate::test_helpers::mock_app();
+      {
+        let db = app.state::<crate::db::Database>();
+        let conn = db.conn();
+        conn
+          .execute(
+            "INSERT INTO workspaces (name, path) VALUES ('Known', '/tmp/nexus_known_ws')",
+            [],
+          )
+          .unwrap();
+      }
+      app
     };
     assert!(daily_note_open(app, "UNKNOWN".into(), "2031-01-01".into()).is_err());
   }

@@ -56,6 +56,33 @@ export function Resizer({
 
   return (
     <div
+      role="separator"
+      aria-label={isVertical ? 'Vertical resize handle' : 'Horizontal resize handle'}
+      aria-orientation={isVertical ? 'vertical' : 'horizontal'}
+      aria-valuenow={value}
+      aria-valuemin={minSize}
+      aria-valuemax={maxSize}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        const step = e.shiftKey ? 50 : 10
+        if (isVertical) {
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            e.preventDefault()
+            onResize(Math.max(minSize, value - step))
+          } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            e.preventDefault()
+            onResize(Math.min(maxSize, value + step))
+          }
+        } else {
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            e.preventDefault()
+            onResize(Math.max(minSize, value - step))
+          } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            e.preventDefault()
+            onResize(Math.min(maxSize, value + step))
+          }
+        }
+      }}
       onMouseDown={(e) => {
         e.preventDefault()
         startPos.current = isVertical ? e.clientX : e.clientY

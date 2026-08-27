@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { attachmentApi, type AttachmentInfo } from '@/core/filesystem/api'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
+import { createWorkspaceLoader } from '@/lib/storeUtils'
 
 interface AttachmentState {
   items: AttachmentInfo[]
@@ -32,17 +33,10 @@ export const useAttachmentStore = create<AttachmentState>((set, get) => ({
   error: '',
   selectedPath: null,
 
-  load: async () => {
-    const ws = useWorkspaceStore.getState().workspace
-    if (!ws) return
-    set({ loading: true, error: '' })
-    try {
-      const items = await attachmentApi.list(ws.path)
-      set({ items, loading: false })
-    } catch (e) {
-      set({ error: String(e), loading: false })
-    }
-  },
+  load: createWorkspaceLoader(
+    (path) => attachmentApi.list(path),
+    (items) => ({ items }),
+  )(set),
 
   upload: async (files) => {
     const ws = useWorkspaceStore.getState().workspace

@@ -157,13 +157,7 @@ fn make_snippet(content: &str, idx: usize, len: usize) -> String {
 pub fn resolve_links<R: tauri::Runtime>(app: &tauri::AppHandle<R>, workspace_path: &str, target_path: &str) -> Result<LinkResolution, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  let ws_id: i64 = conn
-    .query_row(
-      "SELECT id FROM workspaces WHERE path = ?1",
-      params![workspace_path],
-      |r| r.get(0),
-    )
-    .map_err(|e| e.to_string())?;
+  let ws_id = crate::util::resolve_workspace_id(&conn, workspace_path)?;
 
   let target_content = std::fs::read_to_string(target_path).map_err(|e| e.to_string())?;
   let target_title = note_title(&target_content, target_path);

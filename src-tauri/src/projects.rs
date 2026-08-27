@@ -57,14 +57,6 @@ fn fmt_modified(meta: &std::fs::Metadata) -> String {
     .unwrap_or_default()
 }
 
-fn is_note(name: &str) -> bool {
-  crate::util::is_note(name)
-}
-
-fn find_workspace_id(conn: &rusqlite::Connection, path: &Path) -> Option<i64> {
-  crate::util::find_workspace_id(conn, path).ok()
-}
-
 fn projects_root(workspace_path: &str) -> Result<std::path::PathBuf, String> {
   let root = Path::new(workspace_path);
   if !root.is_dir() {
@@ -97,7 +89,7 @@ pub fn list_projects(workspace_path: &str) -> Result<Vec<ProjectSummary>, String
     let mut flat = Vec::new();
     flatten_public(&nodes, &mut flat);
     for n in flat {
-      if n.is_dir || !is_note(&n.name) {
+      if n.is_dir || !crate::util::is_note(&n.name) {
         continue;
       }
       note_count += 1;
@@ -151,7 +143,7 @@ pub fn project_detail(
     if n.is_dir {
       continue;
     }
-    if is_note(&n.name) {
+    if crate::util::is_note(&n.name) {
       let content = std::fs::read_to_string(&n.path).unwrap_or_default();
       let title = note_title(&content, &n.path);
       let updated_at = std::fs::metadata(&n.path)
@@ -192,9 +184,7 @@ pub fn project_list<R: tauri::Runtime>(
 ) -> Result<Vec<ProjectSummary>, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  if find_workspace_id(&conn, Path::new(&workspace_path)).is_none() {
-    return Err("Unknown workspace".into());
-  }
+  crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   list_projects(&workspace_path)
 }
 
@@ -206,9 +196,7 @@ pub fn project_detail_cmd<R: tauri::Runtime>(
 ) -> Result<ProjectDetail, String> {
   let db = app.state::<Database>();
   let conn = db.conn();
-  if find_workspace_id(&conn, Path::new(&workspace_path)).is_none() {
-    return Err("Unknown workspace".into());
-  }
+  crate::util::resolve_workspace_id(&conn, &workspace_path)?;
   project_detail(&workspace_path, &name)
 }
 

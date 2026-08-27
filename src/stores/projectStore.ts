@@ -5,6 +5,7 @@ import {
   type ProjectSummary,
 } from '@/core/filesystem/api'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
+import { createWorkspaceLoader } from '@/lib/storeUtils'
 
 interface ProjectState {
   summaries: ProjectSummary[]
@@ -23,17 +24,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loading: false,
   error: '',
 
-  loadSummaries: async () => {
-    const ws = useWorkspaceStore.getState().workspace
-    if (!ws) return
-    set({ loading: true, error: '' })
-    try {
-      const summaries = await projectApi.list(ws.path)
-      set({ summaries, loading: false })
-    } catch (e) {
-      set({ error: String(e), loading: false })
-    }
-  },
+  loadSummaries: createWorkspaceLoader(
+    (path) => projectApi.list(path),
+    (summaries) => ({ summaries }),
+  )(set),
 
   openProject: async (name) => {
     const ws = useWorkspaceStore.getState().workspace

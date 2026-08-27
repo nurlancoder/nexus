@@ -2,19 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { searchApi, type SearchResult } from '@/core/filesystem/api'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useTabStore } from '@/stores/tabStore'
-import type { FileNode } from '@/types'
-
-function collectDirs(nodes: FileNode[], base = ''): string[] {
-  const dirs: string[] = []
-  for (const n of nodes) {
-    if (n.isDir) {
-      const name = base ? `${base}/${n.name}` : n.name
-      dirs.push(name)
-      dirs.push(...collectDirs(n.children, name))
-    }
-  }
-  return dirs
-}
+import { collectDirs } from '@/lib/tree'
 
 const RECENT_KEY = 'nexus.recentSearches'
 const MAX_RECENT = 10
