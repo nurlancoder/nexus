@@ -3,6 +3,7 @@ import { linkingApi, type GraphNode } from '@/core/filesystem/api'
 import { runLayout, clusterColor, type GraphNodePos } from '@/core/graph/layout'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useTabStore } from '@/stores/tabStore'
+import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 
 interface GraphViewProps {
   focusPath?: string
@@ -423,12 +424,7 @@ export function GraphView({ focusPath }: GraphViewProps) {
           </div>
         )}
         {!loading && raw.length === 0 && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[13px] text-zinc-400">
-            <svg className="h-10 w-10 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-13.35a4.5 4.5 0 00-6.364 0l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-            </svg>
-            <span>No notes yet. Create some notes to see the graph.</span>
-          </div>
+          <EmptyStatePanel icon="◉" heading="No notes yet" description="Create some notes with links to see the graph." />
         )}
         <canvas ref={canvasRef} className="h-full w-full cursor-grab active:cursor-grabbing" />
         {!loading && raw.length > 0 && (

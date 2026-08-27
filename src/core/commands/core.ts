@@ -7,9 +7,11 @@ import { createNoteInInbox } from '@/features/notes/actions'
 import { applyLayoutPreset } from '@/core/layout/presets'
 import { checkForUpdates } from '@/lib/updater'
 import { showInfo } from '@/lib/dialog'
+import { noteApi } from '@/core/filesystem/api'
+import { joinPath } from '@/lib/paths'
+import { refreshTree } from '@/features/notes/actions'
 
 export function registerCoreCommands() {
-  const { setActiveView } = useWorkspaceStore.getState()
 
   commands.register({
     id: 'view.graph.open',
@@ -67,7 +69,7 @@ export function registerCoreCommands() {
     title: 'Open settings',
     category: 'View',
     keywords: ['settings'],
-    run: () => setActiveView('settings'),
+    run: () => useTabStore.getState().openView('settings', 'Settings'),
   })
   commands.register({
     id: 'view.tasks.open',
@@ -147,7 +149,11 @@ export function registerCoreCommands() {
     title: 'Toggle command palette',
     category: 'System',
     keywords: ['palette', 'commands', 'cmd'],
-    run: () => useCommandPaletteStore.getState().open(),
+    run: () => {
+      const s = useCommandPaletteStore.getState()
+      if (s.isOpen) s.close()
+      else s.open()
+    },
   })
   commands.register({
     id: 'workspace.sidebar.toggle',
@@ -182,7 +188,17 @@ export function registerCoreCommands() {
     title: 'Create task',
     category: 'Task',
     keywords: ['new', 'task', 'create'],
-    run: () => {},
+    run: () => {
+      void (async () => {
+        const ws = useWorkspaceStore.getState().workspace
+        if (!ws) return
+        const inbox = await joinPath(ws.path, '00-Inbox')
+        const path = await noteApi.create(inbox, 'Untitled Task')
+        await noteApi.write(path, '- [ ] \n')
+        await refreshTree()
+        useTabStore.getState().openNote(path, 'Untitled Task')
+      })()
+    },
   })
   commands.register({
     id: 'app.update.check',
@@ -195,13 +211,6 @@ export function registerCoreCommands() {
         await showInfo('Software Update', result.message)
       }
     },
-  })
-  commands.register({
-    id: 'project.create',
-    title: 'Create project',
-    category: 'Project',
-    keywords: ['new', 'project', 'create'],
-    run: () => {},
   })
   commands.register({
     id: 'system.shortcuts.show',

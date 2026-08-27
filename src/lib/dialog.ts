@@ -10,6 +10,11 @@ export async function pickDirectory(title: string): Promise<string | null> {
   return typeof result === 'string' ? result : null
 }
 
+export async function promptInput(title: string, defaultValue = ''): Promise<string | null> {
+  const result = window.prompt(title, defaultValue)
+  return result && result.trim() ? result.trim() : null
+}
+
 export async function showInfo(title: string, body: string): Promise<void> {
   if (!isTauri()) {
     window.alert(body)

@@ -4,6 +4,8 @@ import { useTabStore } from '@/stores/tabStore'
 import { canvasApi } from '@/core/filesystem/api'
 import { refreshTree } from '@/features/notes/actions'
 import { joinPath } from '@/lib/paths'
+import { promptInput } from '@/lib/dialog'
+import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 import type { FileNode } from '@/types'
 
 const CANVAS_RE = /\.canvas$/i
@@ -29,7 +31,7 @@ export function CanvasManager() {
 
   const create = async () => {
     if (!workspace || creating) return
-    const name = window.prompt('Canvas name:', 'Untitled')
+    const name = await promptInput('Canvas name:', 'Untitled')
     if (name === null) return
     setCreating(true)
     setError('')
@@ -63,9 +65,7 @@ export function CanvasManager() {
       {error && <p className="mb-3 text-[12px] text-red-500">{error}</p>}
 
       {canvases.length === 0 ? (
-        <p className={`text-[13px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-          No canvases yet. Create one to start an infinite workspace.
-        </p>
+        <EmptyStatePanel icon="◇" heading="No canvases yet" description="Create one to start an infinite workspace." />
       ) : (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {canvases.map((c) => (

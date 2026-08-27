@@ -1,7 +1,13 @@
-import { useEffect } from 'react'
-import { useTabStore } from '@/stores/tabStore'
+import { useEffect, useState } from 'react'
+import { useTabStore, type Tab } from '@/stores/tabStore'
 import { useNoteStore } from '@/stores/noteStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
+
+interface TabContextMenu {
+  x: number
+  y: number
+  tab: Tab
+}
 
 export function TabBar() {
   const tabs = useTabStore((s) => s.tabs)
@@ -9,11 +15,15 @@ export function TabBar() {
   const splitTabId = useTabStore((s) => s.splitTabId)
   const activateTab = useTabStore((s) => s.activateTab)
   const closeTab = useTabStore((s) => s.closeTab)
+  const closeOthers = useTabStore((s) => s.closeOthers)
+  const closeAll = useTabStore((s) => s.closeAll)
   const cycleTab = useTabStore((s) => s.cycleTab)
   const toggleSplitTab = useTabStore((s) => s.toggleSplitTab)
+  const reopenLastClosed = useTabStore((s) => s.reopenLastClosed)
   const docs = useNoteStore((s) => s.docs)
   const theme = useWorkspaceStore((s) => s.theme)
   const isDark = theme === 'dark'
+  const [ctxMenu, setCtxMenu] = useState<TabContextMenu | null>(null)
 
   const isDirty = (tab: (typeof tabs)[number]) =>
     tab.kind === 'note' && tab.notePath
@@ -30,6 +40,12 @@ export function TabBar() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [cycleTab])
+
+  useEffect(() => {
+    const close = () => setCtxMenu(null)
+    window.addEventListener('click', close)
+    return () => window.removeEventListener('click', close)
+  }, [])
 
   if (tabs.length === 0) return null
 
@@ -50,6 +66,10 @@ export function TabBar() {
         return (
           <div
             key={tab.id}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              setCtxMenu({ x: e.clientX, y: e.clientY, tab })
+            }}
             onMouseDown={(e) => {
               if (e.button === 1) {
                 e.preventDefault()
@@ -114,6 +134,51 @@ export function TabBar() {
           </div>
         )
       })}
+      {ctxMenu && (
+        <div
+          className={`fixed z-50 min-w-40 rounded-xl border py-1 shadow-2xl backdrop-blur-sm ${
+            isDark
+              ? 'border-zinc-700 bg-zinc-900/95'
+              : 'border-zinc-200 bg-white/95'
+          }`}
+          style={{ left: ctxMenu.x, top: ctxMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => { closeTab(ctxMenu.tab.id); setCtxMenu(null) }}
+            className={`block w-full px-3 py-1 text-left text-[12px] transition-colors ${
+              isDark ? 'text-zinc-300 hover:bg-zinc-800' : 'text-zinc-700 hover:bg-zinc-100'
+            }`}
+          >
+            Close
+          </button>
+          <button
+            onClick={() => { closeOthers(ctxMenu.tab.id); setCtxMenu(null) }}
+            className={`block w-full px-3 py-1 text-left text-[12px] transition-colors ${
+              isDark ? 'text-zinc-300 hover:bg-zinc-800' : 'text-zinc-700 hover:bg-zinc-100'
+            }`}
+          >
+            Close others
+          </button>
+          <button
+            onClick={() => { closeAll(); setCtxMenu(null) }}
+            className={`block w-full px-3 py-1 text-left text-[12px] transition-colors ${
+              isDark ? 'text-zinc-300 hover:bg-zinc-800' : 'text-zinc-700 hover:bg-zinc-100'
+            }`}
+          >
+            Close all
+          </button>
+          <div className={`my-1 h-px mx-2 ${isDark ? 'bg-zinc-700/60' : 'bg-zinc-200'}`} />
+          <button
+            onClick={() => { reopenLastClosed(); setCtxMenu(null) }}
+            className={`block w-full px-3 py-1 text-left text-[12px] transition-colors ${
+              isDark ? 'text-zinc-300 hover:bg-zinc-800' : 'text-zinc-700 hover:bg-zinc-100'
+            }`}
+          >
+            Reopen closed
+          </button>
+        </div>
+      )}
     </div>
   )
 }

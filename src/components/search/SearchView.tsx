@@ -3,6 +3,7 @@ import { searchApi, type SearchResult } from '@/core/filesystem/api'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useTabStore } from '@/stores/tabStore'
 import { collectDirs } from '@/lib/tree'
+import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 
 const RECENT_KEY = 'nexus.recentSearches'
 const MAX_RECENT = 10
@@ -214,9 +215,7 @@ export function SearchView() {
         )}
 
         {!searching && searched === query.trim() && results.length === 0 && !error && (
-          <p className="text-[13px] text-zinc-500">
-            No results for "{query.trim()}".
-          </p>
+          <EmptyStatePanel icon="🔍" heading={`No results for "${query.trim()}"`} description="Try different keywords or check your folder filter." />
         )}
 
         {error && <p className="text-[13px] text-red-500">{error}</p>}

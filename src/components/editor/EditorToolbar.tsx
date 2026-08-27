@@ -80,7 +80,7 @@ export function EditorToolbar({ editor }: { editor: Editor | null }) {
     {
       label: '🔗',
       title: 'Link',
-      shortcut: 'Ctrl+K',
+      shortcut: 'Ctrl+Shift+K',
       isActive: () => state.link,
       action: (e) => {
         const url = window.prompt('Link URL:')

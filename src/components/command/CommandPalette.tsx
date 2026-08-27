@@ -105,7 +105,7 @@ export function CommandPalette() {
             }`}
           />
         </div>
-        <ul id="command-palette-listbox" role="listbox" className="max-h-72 overflow-y-auto p-1.5">
+        <ul id="command-palette-listbox" role="listbox" className="max-h-72 overflow-y-auto p-1">
           {results.length === 0 && (
             <li className="flex flex-col items-center gap-1 py-6 text-center">
               <span className={`text-[13px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
@@ -146,11 +146,6 @@ export function CommandPalette() {
                   }`}
                 >
                   {cmd.category}
-                </span>
-                <span
-                  className={`text-[10px] ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}
-                >
-                  ⌘K
                 </span>
               </button>
             </li>

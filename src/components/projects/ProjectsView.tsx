@@ -4,6 +4,7 @@ import { useTabStore } from '@/stores/tabStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { taskApi } from '@/core/filesystem/api'
 import { computeProgress, formatBytes } from '@/core/projects/model'
+import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 
 function ProgressBar({
   done,
@@ -254,12 +255,7 @@ export function ProjectsView() {
         {loading && <p className={`text-[13px] ${mutedText}`}>Loading projects…</p>}
         {error && <p className="text-[13px] text-red-500">{error}</p>}
         {!loading && !error && summaries.length === 0 && (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <div className="text-5xl opacity-40">🗂</div>
-            <p className={`max-w-xs text-[13px] ${mutedText}`}>
-              No projects yet. Create a folder inside `02-Projects` and it will appear here.
-            </p>
-          </div>
+          <EmptyStatePanel icon="🗂" heading="No projects yet" description="Create a folder inside 02-Projects and it will appear here." />
         )}
         <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
           {summaries.map((p) => (

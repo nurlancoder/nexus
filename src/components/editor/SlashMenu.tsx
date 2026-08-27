@@ -28,7 +28,7 @@ const COMMANDS: SlashCommand[] = [
     title: 'Link',
     keywords: ['url'],
     icon: '🔗',
-    shortcut: 'Ctrl+K',
+    shortcut: 'Ctrl+Shift+K',
     category: 'Insert',
     run: (e) => {
       const url = window.prompt('Link URL:')

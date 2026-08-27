@@ -22,6 +22,7 @@ interface TabState {
   openCanvas: (path: string, title: string) => void
   updateNoteTab: (oldPath: string, newPath: string, title: string) => void
   closeTab: (id: string) => void
+  closeOthers: (id: string) => void
   closeAll: () => void
   activateTab: (id: string) => void
   cycleTab: (dir: 1 | -1) => void
@@ -115,6 +116,16 @@ export const useTabStore = create<TabState>((set, get) => ({
 
   closeAll: () =>
     set({ tabs: [], activeTabId: null, splitTabId: null }),
+
+  closeOthers: (id) => {
+    const { tabs, activeTabId, splitTabId } = get()
+    const tab = tabs.find((t) => t.id === id)
+    if (!tab) return
+    const next = [tab]
+    const nextActive = activeTabId === id ? id : tab.id
+    const nextSplit = splitTabId === id ? splitTabId : null
+    set({ tabs: next, activeTabId: nextActive, splitTabId: nextSplit })
+  },
 
   activateTab: (id) => set({ activeTabId: id }),
 

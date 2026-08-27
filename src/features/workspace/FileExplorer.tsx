@@ -5,7 +5,8 @@ import { useNoteStore } from '@/stores/noteStore'
 import { noteApi, canvasApi } from '@/core/filesystem/api'
 import { refreshTree } from '@/features/notes/actions'
 import { dirname, basename } from '@/lib/paths'
-import { pickDirectory } from '@/lib/dialog'
+import { pickDirectory, promptInput } from '@/lib/dialog'
+import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 import type { FileNode } from '@/types'
 
 interface MenuState {
@@ -78,7 +79,7 @@ function TreeItem({ node, depth, activePath, onOpenNote, onOpenCanvas, onContext
               ? 'text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200'
               : 'text-zinc-600 hover:bg-zinc-200/70 hover:text-zinc-900'
         }`}
-        style={{ paddingLeft: `${8 + depth * 14}px` }}
+        style={{ paddingLeft: `${8 + depth * 16}px` }}
       >
         <span
           className={`w-3 shrink-0 text-center text-[9px] ${
@@ -127,7 +128,11 @@ export function FileExplorer() {
   const onContextMenu = (e: React.MouseEvent, node: FileNode) => {
     e.preventDefault()
     e.stopPropagation()
-    setMenu({ x: e.clientX, y: e.clientY, node })
+    const MENU_W = 180
+    const MENU_H = 200
+    const x = Math.min(e.clientX, window.innerWidth - MENU_W)
+    const y = Math.min(e.clientY, window.innerHeight - MENU_H)
+    setMenu({ x, y, node })
   }
 
   const runAction = async (action: string) => {
@@ -161,7 +166,8 @@ export function FileExplorer() {
       }
     } else if (node && action === 'rename') {
       const stem = node.name.replace(MARKDOWN_RE, '')
-      const newName = stem
+      const newName = await promptInput('Rename note:', stem)
+      if (!newName || newName === stem) return
       try {
         const newPath = await noteApi.rename(node.path, newName)
         await refreshTree()
@@ -202,11 +208,7 @@ export function FileExplorer() {
   }
 
   if (fileTree.length === 0) {
-    return (
-      <p className={`px-3 py-1 text-[12px] ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
-        Empty workspace
-      </p>
-    )
+    return <EmptyStatePanel icon="📁" heading="Empty workspace" />
   }
 
   const menuItem = (label: string, action: string, danger = false) => (
@@ -215,7 +217,7 @@ export function FileExplorer() {
         e.stopPropagation()
         void runAction(action)
       }}
-      className={`block w-full px-3 py-1.5 text-left text-[12px] transition-colors ${
+      className={`block w-full px-3 py-1 text-left text-[12px] transition-colors ${
         danger
           ? isDark
             ? 'text-red-400 hover:bg-red-500/15'
@@ -239,7 +241,7 @@ export function FileExplorer() {
 
       {menu && (
         <div
-          className={`fixed z-50 min-w-44 rounded-xl border py-1.5 shadow-2xl backdrop-blur-sm ${
+          className={`fixed z-50 min-w-44 rounded-xl border py-1 shadow-2xl backdrop-blur-sm ${
             isDark
               ? 'border-zinc-700 bg-zinc-900/95'
               : 'border-zinc-200 bg-white/95'

@@ -17,6 +17,7 @@ import {
   visibleColumns,
 } from '@/core/database/model'
 import { collectDirs } from '@/lib/tree'
+import { EmptyStatePanel } from '@/components/ui/EmptyStatePanel'
 
 export function DatabaseView() {
   const { theme, workspace, fileTree } = useWorkspaceStore()
@@ -205,13 +206,7 @@ export function DatabaseView() {
       </div>
 
       {!activeName ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-          <div className="text-5xl opacity-40">▦</div>
-          <p className={`text-[13px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-            No databases yet. Create one to build a table view over your note
-            properties.
-          </p>
-        </div>
+        <EmptyStatePanel icon="▦" heading="No databases yet" description="Create one to build a table view over your note properties." />
       ) : (
         <>
           <div
@@ -359,15 +354,7 @@ export function DatabaseView() {
             )}
             {error && <p className="p-4 text-[13px] text-red-500">{error}</p>}
             {!loading && !error && sorted.length === 0 && (
-              <div className="flex flex-col items-center gap-2 py-12 text-center">
-                <div className="text-4xl opacity-40">▦</div>
-                <p className={`text-[13px] font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                  No matching notes
-                </p>
-                <p className={`text-[12px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                  {def.filterKey || def.filterValue ? 'Try adjusting your filters.' : 'No notes found in the selected source folders.'}
-                </p>
-              </div>
+              <EmptyStatePanel icon="▦" heading="No matching notes" description={def.filterKey || def.filterValue ? 'Try adjusting your filters.' : 'No notes found in the selected source folders.'} />
             )}
             {!loading && !error && sorted.length > 0 && (
               <table className="w-full border-collapse text-left text-[12px]">
