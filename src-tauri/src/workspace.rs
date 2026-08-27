@@ -316,9 +316,7 @@ pub fn note_create<R: tauri::Runtime>(app: tauri::AppHandle<R>, parent: String, 
     security::validate_path(&db.conn(), &parent)?;
   }
   let dir = Path::new(&parent);
-  if !dir.is_dir() {
-    return Err("Parent is not a directory".into());
-  }
+  std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
   let clean_title = title.trim().to_string();
   let base = if clean_title.is_empty() {
     "Untitled".to_string()
@@ -534,7 +532,25 @@ mod tests {
     assert!(note_create(app, outside.to_string_lossy().to_string(), "Bad".into()).is_err());
 
     std::fs::remove_dir_all(&dir).unwrap();
-    std::fs::remove_dir_all(&outside).unwrap();
+  }
+
+  #[test]
+  fn note_create_creates_missing_parent_dir() {
+    let app = crate::test_helpers::mock_app();
+    let dir = std::env::temp_dir().join(format!("nexus_test_nc_self_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    crate::test_helpers::register_ws(&app, &dir.to_string_lossy());
+
+    let inbox = dir.join("00-Inbox");
+    assert!(!inbox.exists());
+
+    let path = note_create(app, inbox.to_string_lossy().to_string(), "Task".into()).unwrap();
+
+    assert!(inbox.is_dir());
+    assert!(std::path::Path::new(&path).is_file());
+    assert!(path.starts_with(inbox.to_string_lossy().as_ref()) || path.contains("00-Inbox"));
+
+    std::fs::remove_dir_all(&dir).unwrap();
   }
 
   #[test]
