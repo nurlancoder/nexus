@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { commands } from '@/core/commands/registry'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useCommandPaletteStore } from '@/stores/commandPaletteStore'
+import { loadRecentCommands, recordRecentCommand } from '@/lib/recentCommands'
 
 const CATEGORY_STYLE: Record<string, string> = {
   View: 'bg-blue-500/15 text-blue-500',
@@ -32,7 +33,20 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null)
   const isDark = theme === 'dark'
 
-  const results = useMemo(() => commands.search(query), [query])
+  const results = useMemo(() => {
+    const searched = commands.search(query)
+    if (query.trim()) return searched
+    const recent = loadRecentCommands()
+      .map((id) => commands.all().find((c) => c.id === id))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+    const recentIds = new Set(recent.map((c) => c.id))
+    return [...recent, ...searched.filter((c) => !recentIds.has(c.id))]
+  }, [query])
+
+  const run = (cmd: { id: string; run: () => void }) => {
+    recordRecentCommand(cmd.id)
+    cmd.run()
+  }
 
   useEffect(() => {
     if (isOpen) inputRef.current?.focus()
@@ -89,7 +103,7 @@ export function CommandPalette() {
                 e.preventDefault()
                 setSelected((s) => Math.max(s - 1, 0))
               } else if (e.key === 'Enter' && results[selected]) {
-                results[selected].run()
+                run(results[selected])
                 close()
               }
             }}
@@ -121,7 +135,7 @@ export function CommandPalette() {
               <button
                 onMouseEnter={() => setSelected(i)}
                 onClick={() => {
-                  cmd.run()
+                  run(cmd)
                   close()
                 }}
                 className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-[13px] ${
